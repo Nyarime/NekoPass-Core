@@ -1,0 +1,25 @@
+# NekoPass Lite v1.0.0 Checksums
+
+## SHA256
+74fb27ed0c83a64d750549a7a811ac53eedfc3cf48bc6a6128bef92f75fbf32b  nekopass-lite-client-darwin-amd64
+d4a1dd811fe7299c3412a4973f7952816bf51a20a9dffb88e574ba6369b22102  nekopass-lite-client-darwin-arm64
+21fc6a93e634dd6ba69c62eedb5bb03053ae6c792071b5a3ed58f52ee7a77675  nekopass-lite-client-linux-amd64
+21a5279fe37f4da72e85b0306983260519b0262f240329f36ea32b71c6c6dcb0  nekopass-lite-client-linux-arm64
+b68392a01070400f09ebddb87221411a06020fe23a35ae02c7b23ef4d725e014  nekopass-lite-client-windows-amd64.exe
+cf76ae11339577a2498bf0d20afc1906d2819e180d985991f365d3e94a12117e  nekopass-lite-server-darwin-amd64
+b7bfdb1ae9a8816a8ad0b9ccb359e39cbc066b9185fa28f6b3220c5f0e710df5  nekopass-lite-server-darwin-arm64
+d37393b91d93f3b4d62e3596bcb4ce9c150f30b7a59583c024e4e45b4f5a58c1  nekopass-lite-server-linux-amd64
+15ac418cf200eecae72c619cb941a73242829b0269c29fe40e67c14b025b6bb8  nekopass-lite-server-linux-arm64
+127dfcd7a52d9780d1fc714c1a4044681beb354d431c764e4071062b959d70f1  nekopass-lite-server-windows-amd64.exe
+
+## MD5
+adc97543249c1e6b33bfbe3ea0da18d8  nekopass-lite-client-darwin-amd64
+04b1bf45b6e3bdccacbdea671f2d4e66  nekopass-lite-client-darwin-arm64
+36c3433027ce774db04e39e25822776c  nekopass-lite-client-linux-amd64
+978d8b5cd303c1be196faf104719e48f  nekopass-lite-client-linux-arm64
+87398602d8f2503cc06fd4c5f9ac01e4  nekopass-lite-client-windows-amd64.exe
+43deea5a3c606313e3a32f424fe65cf2  nekopass-lite-server-darwin-amd64
+32ed413575be57a378cd073dd91eb2b5  nekopass-lite-server-darwin-arm64
+8e251a718bc59684887b954a2dd333cb  nekopass-lite-server-linux-amd64
+83ef05d00ba37654277e78abc8537f4d  nekopass-lite-server-linux-arm64
+b6f1d8555c9651700e1d9238401941ed  nekopass-lite-server-windows-amd64.exe
