@@ -5,6 +5,7 @@ server: "your-server.com:443"
 password: "your-password"
 disguise: "anyconnect"
 sni: "vpn2fa.hku.hk"
+transport: "auto"      # auto(默认) / udp / tcp
 
 # 代理监听
 proxy:

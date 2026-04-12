@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/sha256"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -18,10 +19,11 @@ import (
 )
 
 type Config struct {
-	Server   string `yaml:"server"`
-	Password string `yaml:"password"`
-	Disguise string `yaml:"disguise"`
-	SNI      string `yaml:"sni"`
+	Server    string `yaml:"server"`
+	Password  string `yaml:"password"`
+	Disguise  string `yaml:"disguise"`
+	SNI       string `yaml:"sni"`
+	Transport string `yaml:"transport"` // udp(default) / tcp / auto
 
 	Proxy struct {
 		Listen string `yaml:"listen"`
@@ -268,6 +270,24 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 
 // === NRUP 连接 ===
 
+// dialRemote UDP/TCP/auto
+func dialRemote() (net.Conn, error) {
+	transport := config.Transport
+	if transport == "" { transport = "auto" }
+
+	if transport == "udp" || transport == "auto" {
+		conn, err := dialNRUP()
+		if err == nil {
+			return conn, nil
+		}
+		if transport == "udp" {
+			return nil, err
+		}
+		log.Printf("UDP fail, TCP fallback: %v", err)
+	}
+	return dialTCP()
+}
+
 func dialNRUP() (*nrup.Conn, error) {
 	cfg := nrup.DefaultConfig()
 	cfg.PSK = deriveKey(config.Password)
@@ -286,8 +306,25 @@ func dialNRUP() (*nrup.Conn, error) {
 	return conn, nil
 }
 
+func dialTCP() (net.Conn, error) {
+	tlsCfg := &tls.Config{InsecureSkipVerify: true, ServerName: config.SNI}
+	conn, err := tls.Dial("tcp", config.Server, tlsCfg)
+	if err != nil {
+		return nil, fmt.Errorf("TCP TLS: %w", err)
+	}
+	psk := deriveKey(config.Password)
+	auth := sha256.Sum256(psk)
+	conn.Write(auth[:])
+	ack := make([]byte, 1)
+	if _, err := conn.Read(ack); err != nil || ack[0] != 0x01 {
+		conn.Close()
+		return nil, fmt.Errorf("TCP auth failed")
+	}
+	return conn, nil
+}
+
 func proxyTo(target string, local net.Conn) {
-	remote, err := dialNRUP()
+	remote, err := dialRemote()
 	if err != nil {
 		log.Printf("NRUP 连接失败: %v", err)
 		return
