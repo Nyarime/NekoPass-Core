@@ -25,8 +25,7 @@ import (
 func main() {
 	listen := flag.String("listen", ":443", "监听地址")
 	password := flag.String("password", "", "连接密码")
-	disguise := flag.String("disguise", "anyconnect", "伪装模式 (anyconnect/quic)")
-	sni := flag.String("sni", "", "QUIC 模式 SNI")
+	sni := flag.String("sni", "vpn2fa.hku.hk", "QUIC 模式 SNI")
 	portal := flag.String("portal", ":8443", "AnyConnect Portal HTTPS 监听 (留空禁用)")
 	portalTitle := flag.String("portal-title", "HKU VPN Service", "Portal 页面标题")
 	flag.Parse()
@@ -74,8 +73,6 @@ func main() {
 
 	cfg := nrup.DefaultConfig()
 	cfg.PSK = deriveKey(*password)
-	cfg.Disguise = *disguise
-	cfg.DisguiseSNI = *sni
 
 	listener, err := nrup.Listen(*listen, cfg)
 	if err != nil {
@@ -87,7 +84,7 @@ func main() {
 	}
 
 	// TCP TLS 监听（同端口）
-	go startTCPListener(*listen, deriveKey(*password))
+	go startTCPListener(*listen, deriveKey(*password), stolenCertDER)
 
 	for {
 		conn, err := listener.Accept()
@@ -231,16 +228,29 @@ func deriveKey(password string) []byte {
 }
 
 // startTCPListener TCP TLS 监听（UDP被封时的备用通道）
-func startTCPListener(addr string, psk []byte) {
-	// 自签名证书（生产环境建议用ACME）
-	cert, err := tls.X509KeyPair(selfSignedCert())
-	if err != nil {
-		log.Printf("[TCP] 证书生成失败: %v", err)
-		return
+func startTCPListener(addr string, psk []byte, stolenCert []byte) {
+	// 用偷来的证书 + 自生成私钥
+	var tlsCert tls.Certificate
+	var err error
+	if len(stolenCert) > 0 {
+		// 偷证书模式：用偷来的证书DER + 新私钥
+		key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		tlsCert = tls.Certificate{
+			Certificate: [][]byte{stolenCert},
+			PrivateKey:  key,
+		}
+		log.Printf("[TCP] 使用偷取证书 (%d bytes)", len(stolenCert))
+	} else {
+		tlsCert, err = tls.X509KeyPair(selfSignedCert())
+		if err != nil {
+			log.Printf("[TCP] 证书失败: %v", err)
+			return
+		}
+		log.Printf("[TCP] 偷证书失败，使用自签名")
 	}
 
 	tlsCfg := &tls.Config{
-		Certificates: []tls.Certificate{cert},
+		Certificates: []tls.Certificate{tlsCert},
 		MinVersion:   tls.VersionTLS12,
 	}
 
