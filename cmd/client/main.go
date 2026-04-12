@@ -249,7 +249,7 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 		go func() { defer wg.Done(); io.Copy(conn, remote) }()
 		wg.Wait()
 	} else {
-		remote, err := dialNRUP()
+		remote, err := dialForTCP()
 		if err != nil {
 			return
 		}
@@ -270,29 +270,29 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 
 // === NRUP 连接 ===
 
-// dialRemote UDP/TCP/auto
-func dialRemote() (net.Conn, error) {
-	transport := config.Transport
-	if transport == "" { transport = "auto" }
-
-	if transport == "udp" || transport == "auto" {
-		conn, err := dialNRUP()
-		if err == nil {
-			return conn, nil
-		}
-		if transport == "udp" {
-			return nil, err
-		}
-		log.Printf("UDP fail, TCP fallback: %v", err)
+// dialForTCP TCP代理走TLS隧道（可靠，大包无问题）
+func dialForTCP() (net.Conn, error) {
+	conn, err := dialTCP()
+	if err != nil {
+		// TCP失败降级到NRUP StreamMode
+		return dialNRUPStream()
 	}
-	return dialTCP()
+	return conn, nil
+}
+
+// dialForUDP UDP代理走NRUP（FEC抗丢包）
+func dialForUDP() (net.Conn, error) {
+	conn, err := dialNRUP()
+	if err != nil {
+		return dialTCP()
+	}
+	return conn, nil
 }
 
 func dialNRUP() (*nrup.Conn, error) {
 	cfg := nrup.DefaultConfig()
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
-	cfg.StreamMode = true
 	cfg.DisguiseSNI = config.SNI
 
 	if sid, ok := sessionID.Load().(string); ok && sid != "" {
@@ -325,7 +325,7 @@ func dialTCP() (net.Conn, error) {
 }
 
 func proxyTo(target string, local net.Conn) {
-	remote, err := dialRemote()
+	remote, err := dialForTCP()
 	if err != nil {
 		log.Printf("NRUP 连接失败: %v", err)
 		return
@@ -475,4 +475,19 @@ func chunkedCopy(dst, src net.Conn) {
 			return
 		}
 	}
+}
+
+func dialNRUPStream() (*nrup.Conn, error) {
+	cfg := nrup.DefaultConfig()
+	cfg.PSK = deriveKey(config.Password)
+	cfg.Disguise = config.Disguise
+	cfg.DisguiseSNI = config.SNI
+	cfg.StreamMode = true
+	if sid, ok := sessionID.Load().(string); ok && sid != "" {
+		cfg.ResumeID = sid
+	}
+	conn, err := nrup.Dial(config.Server, cfg)
+	if err != nil { return nil, err }
+	sessionID.Store(conn.SessionID())
+	return conn, nil
 }
