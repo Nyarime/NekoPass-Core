@@ -66,8 +66,8 @@ func main() {
 	}
 
 	cfg := nrup.DefaultConfig()
-	cfg.StreamMode = true
 	cfg.PSK = deriveKey(*password)
+	cfg.StreamMode = true
 
 	listener, err := nrup.Listen(*listen, cfg)
 	if err != nil {
@@ -366,3 +366,14 @@ func handleUDPForward(conn net.Conn, target string) {
 	<-done
 }
 
+
+func chunkedCopy(dst, src net.Conn) {
+	buf := make([]byte, 1024)
+	for {
+		n, err := src.Read(buf)
+		if n > 0 {
+			if _, werr := dst.Write(buf[:n]); werr != nil { return }
+		}
+		if err != nil { return }
+	}
+}

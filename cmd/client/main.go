@@ -292,7 +292,7 @@ func dialNRUP() (*nrup.Conn, error) {
 	cfg := nrup.DefaultConfig()
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
-	cfg.StreamMode = true // TCP代理用流模式，绕过FEC直接nDTLS分片
+	cfg.StreamMode = true
 	cfg.DisguiseSNI = config.SNI
 
 	if sid, ok := sessionID.Load().(string); ok && sid != "" {
@@ -459,4 +459,20 @@ func startTUN() {
 func deriveKey(password string) []byte {
 	h := sha256.Sum256([]byte("nekopass-lite:" + password))
 	return h[:]
+}
+
+// chunkedCopy 分片拷贝，确保每次Write≤1024字节，保留FEC保护
+func chunkedCopy(dst, src net.Conn) {
+	buf := make([]byte, 1024)
+	for {
+		n, err := src.Read(buf)
+		if n > 0 {
+			if _, werr := dst.Write(buf[:n]); werr != nil {
+				return
+			}
+		}
+		if err != nil {
+			return
+		}
+	}
 }
