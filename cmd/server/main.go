@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/sha256"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"sync"
 
 	"github.com/nyarime/nrup"
@@ -16,10 +18,17 @@ func main() {
 	password := flag.String("password", "", "连接密码")
 	disguise := flag.String("disguise", "anyconnect", "伪装模式 (anyconnect/quic)")
 	sni := flag.String("sni", "", "QUIC 模式 SNI")
+	portal := flag.String("portal", ":8443", "AnyConnect Portal HTTPS 监听 (留空禁用)")
+	portalTitle := flag.String("portal-title", "SSL VPN Service", "Portal 页面标题")
 	flag.Parse()
 
 	if *password == "" {
 		log.Fatal("请指定 -password")
+	}
+
+	// AnyConnect Portal 回落页面
+	if *portal != "" {
+		go startPortal(*portal, *portalTitle)
 	}
 
 	cfg := nrup.DefaultConfig()
@@ -32,6 +41,9 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("NekoPass Lite Server 监听 %s (伪装: %s)", *listen, *disguise)
+	if *portal != "" {
+		log.Printf("AnyConnect Portal 监听 %s", *portal)
+	}
 
 	for {
 		conn, err := listener.Accept()
@@ -45,7 +57,6 @@ func main() {
 func handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	// 读取目标地址
 	buf := make([]byte, 256)
 	n, err := conn.Read(buf)
 	if err != nil || n < 4 {
@@ -60,7 +71,7 @@ func handleConn(conn net.Conn) {
 	}
 	defer remote.Close()
 
-	conn.Write([]byte{0x01}) // 连接成功
+	conn.Write([]byte{0x01})
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -68,6 +79,99 @@ func handleConn(conn net.Conn) {
 	go func() { defer wg.Done(); io.Copy(conn, remote) }()
 	wg.Wait()
 }
+
+// startPortal 启动 AnyConnect Portal 回落页面
+// 当 DPI 或浏览器直接访问时，返回 Cisco ASA 风格的 SSL VPN 登录页
+func startPortal(addr, title string) {
+	mux := http.NewServeMux()
+
+	// Cisco ASA AnyConnect Portal 页面
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Server", "Cisco ASA SSL VPN")
+		w.Header().Set("X-Powered-By", "Cisco Systems, Inc.")
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, portalHTML, title, title)
+	})
+
+	// AnyConnect 客户端探测端点
+	mux.HandleFunc("/+CSCOE+/logon.html", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Server", "Cisco ASA SSL VPN")
+		fmt.Fprintf(w, portalHTML, title, title)
+	})
+
+	// AnyConnect XML profile
+	mux.HandleFunc("/+CSCOT+/tunnel-group-list.xml", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Server", "Cisco ASA SSL VPN")
+		w.Header().Set("Content-Type", "application/xml")
+		fmt.Fprintf(w, tunnelGroupXML, title)
+	})
+
+	// CONNECT 端点（Cisco AnyConnect 风格）
+	mux.HandleFunc("/CSCOSSLC/tunnel", func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "SSL VPN session required", 403)
+	})
+
+	log.Fatal(http.ListenAndServe(addr, mux))
+}
+
+const portalHTML = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>%s - SSL VPN Portal</title>
+<style>
+body { font-family: -apple-system, "Segoe UI", Arial, sans-serif; margin: 0; background: #f5f5f5; }
+.header { background: linear-gradient(135deg, #1a5276 0%%, #2980b9 100%%); padding: 15px 30px; color: white; }
+.header h1 { margin: 0; font-size: 18px; font-weight: normal; }
+.header img { height: 24px; vertical-align: middle; margin-right: 10px; }
+.container { max-width: 400px; margin: 80px auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.1); overflow: hidden; }
+.form-header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
+.form-header h2 { margin: 0; font-size: 16px; }
+.form-body { padding: 30px; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; color: #555; font-size: 13px; }
+.form-group input, .form-group select { width: 100%%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
+.btn { width: 100%%; padding: 10px; background: #2980b9; color: white; border: none; border-radius: 4px; font-size: 14px; cursor: pointer; }
+.btn:hover { background: #1a6fa0; }
+.footer { text-align: center; padding: 15px; color: #999; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="header"><h1>%s</h1></div>
+<div class="container">
+<div class="form-header"><h2>SSL VPN Login</h2></div>
+<div class="form-body">
+<form>
+<div class="form-group">
+<label>GROUP:</label>
+<select><option>DefaultWEBVPNGroup</option><option>Staff</option><option>Student</option></select>
+</div>
+<div class="form-group">
+<label>USERNAME:</label>
+<input type="text" placeholder="Enter username">
+</div>
+<div class="form-group">
+<label>PASSWORD:</label>
+<input type="password" placeholder="Enter password">
+</div>
+<button type="button" class="btn" onclick="alert('Please use AnyConnect client to connect.')">Login</button>
+</form>
+</div>
+<div class="footer">Powered by Cisco ASA SSL VPN</div>
+</div>
+</body>
+</html>`
+
+const tunnelGroupXML = `<?xml version="1.0" encoding="UTF-8"?>
+<config-auth client="vpn" type="auth-request">
+  <version who="sg">9.16(4)48</version>
+  <tunnel-group-list>
+    <tunnel-group>
+      <group-name>%s</group-name>
+      <group-policy>DefaultWEBVPNGroup</group-policy>
+    </tunnel-group>
+  </tunnel-group-list>
+</config-auth>`
 
 func deriveKey(password string) []byte {
 	h := sha256.Sum256([]byte("nekopass-lite:" + password))
