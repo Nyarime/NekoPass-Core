@@ -37,8 +37,7 @@ password: "your-password"
 disgrise: "anyconnect"
 
 proxy:
-  http: "127.0.0.1:7890"     # HTTP/HTTPS 代理
-  socks5: "127.0.0.1:7891"   # SOCKS5 代理
+  listen: "127.0.0.1:1080"     # HTTP/HTTPS 代理
 
 rules:
   - "DOMAIN-KEYWORD,baidu,DIRECT"
@@ -47,7 +46,7 @@ rules:
   - "MATCH,PROXY"
 ```
 
-默认配置绕过 CN 流量，其余全走代理。规则语法与 Clash 一致。
+单端口自动识别 HTTP/HTTPS/SOCKS5。默认绕过 CN 流量。
 
 ## 参数
 

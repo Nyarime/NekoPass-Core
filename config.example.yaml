@@ -8,8 +8,7 @@ sni: "vpn2fa.hku.hk"
 
 # 代理监听
 proxy:
-  http: "127.0.0.1:7890"     # HTTP/HTTPS 代理
-  socks5: "127.0.0.1:7891"   # SOCKS5 代理（支持 UDP）
+  listen: "127.0.0.1:1080"    # HTTP/HTTPS/SOCKS5 共用端口
 
 # TUN 模式（可选）
 # tun:
