@@ -36,10 +36,8 @@ func main() {
 
 	// 偷证书 + Portal
 	var stolenCertDER []byte
-	var stolenPortalHTML string
 	if *sni != "" {
-		log.Printf("正在从 %s 偷取证书和Portal...", *sni)
-		stolenPortalHTML = stealPortal(*sni)
+		log.Printf("正在从 %s 偷取证书...", *sni)
 		// 偷证书用于TLS指纹
 		addr := *sni
 		if _, _, err := net.SplitHostPort(addr); err != nil {
@@ -64,11 +62,7 @@ func main() {
 
 	// AnyConnect Portal 回落页面
 	if *portal != "" {
-		if stolenPortalHTML != "" {
-			go startPortalWithHTML(*portal, stolenPortalHTML)
-		} else {
-			go startPortal(*portal, *portalTitle)
-		}
+		go startPortal(*portal, *portalTitle)
 	}
 
 	cfg := nrup.DefaultConfig()
@@ -371,19 +365,3 @@ func handleUDPForward(conn net.Conn, target string) {
 	<-done
 }
 
-// startPortalWithHTML 用偷来的页面作为Portal
-func startPortalWithHTML(addr, html string) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", "Cisco ASA SSL VPN")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write([]byte(html))
-	})
-	mux.HandleFunc("/+CSCOE+/logon.html", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", "Cisco ASA SSL VPN")
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write([]byte(html))
-	})
-	log.Printf("[Portal] 使用偷取的页面")
-	log.Fatal(http.ListenAndServe(addr, mux))
-}
