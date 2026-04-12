@@ -58,7 +58,7 @@ func main() {
 			conn.Close()
 		}
 	}
-	_ = remoteCertDER // TODO: 用于TLS服务器证书指纹
+	_ = remoteCertDER
 
 	// AnyConnect Portal 回落页面
 	if *portal != "" {
@@ -67,6 +67,7 @@ func main() {
 
 	cfg := nrup.DefaultConfig()
 	cfg.PSK = deriveKey(*password)
+	cfg.CertDER = remoteCertDER // nDTLS握手也用远端证书
 
 	listener, err := nrup.Listen(*listen, cfg)
 	if err != nil {
