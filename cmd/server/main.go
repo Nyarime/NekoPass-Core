@@ -76,6 +76,13 @@ func handleConn(conn net.Conn) {
 	}
 
 	target := string(buf[:n])
+
+	// UDP转发
+	if len(target) > 4 && target[:4] == "UDP:" {
+		handleUDPForward(conn, target[4:])
+		return
+	}
+
 	remote, err := net.Dial("tcp", target)
 	if err != nil {
 		log.Printf("连接 %s 失败: %v", target, err)
@@ -275,4 +282,49 @@ func selfSignedCert() ([]byte, []byte) {
 	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
 	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
 	return certPEM, keyPEM
+}
+
+// handleUDPForward 服务端UDP转发
+func handleUDPForward(conn net.Conn, target string) {
+	rAddr, err := net.ResolveUDPAddr("udp", target)
+	if err != nil {
+		return
+	}
+
+	udpConn, err := net.DialUDP("udp", nil, rAddr)
+	if err != nil {
+		log.Printf("[UDP] 连接 %s 失败: %v", target, err)
+		return
+	}
+	defer udpConn.Close()
+
+	conn.Write([]byte{0x01}) // 连接成功
+
+	// 双向转发
+	done := make(chan struct{}, 2)
+
+	// client → target
+	go func() {
+		buf := make([]byte, 65536)
+		for {
+			n, err := conn.Read(buf)
+			if err != nil { break }
+			udpConn.Write(buf[:n])
+		}
+		done <- struct{}{}
+	}()
+
+	// target → client
+	go func() {
+		buf := make([]byte, 65536)
+		for {
+			udpConn.SetReadDeadline(time.Now().Add(30 * time.Second))
+			n, err := udpConn.Read(buf)
+			if err != nil { break }
+			conn.Write(buf[:n])
+		}
+		done <- struct{}{}
+	}()
+
+	<-done
 }

@@ -127,7 +127,7 @@ func handleSOCKS5(conn net.Conn, firstByte byte) {
 	cmd := buf[1]
 	if cmd == 0x03 {
 		// UDP ASSOCIATE
-		conn.Write([]byte{0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
+		handleUDPAssociate(conn)
 		return
 	}
 	if cmd != 0x01 {
