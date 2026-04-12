@@ -90,7 +90,7 @@ func main() {
 func handleMixed(conn net.Conn) {
 	defer conn.Close()
 
-	// 偷看第一个字节
+	// peek第一个字节
 	buf := make([]byte, 1)
 	if _, err := io.ReadFull(conn, buf); err != nil {
 		return

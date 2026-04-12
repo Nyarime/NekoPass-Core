@@ -34,11 +34,11 @@ func main() {
 		log.Fatal("请指定 -password")
 	}
 
-	// 偷证书 + Portal
-	var stolenCertDER []byte
+	// 获取远端证书
+	var remoteCertDER []byte
 	if *sni != "" {
-		log.Printf("正在从 %s 偷取证书...", *sni)
-		// 偷证书用于TLS指纹
+		log.Printf("正在从 %s 获取远端证书...", *sni)
+		// 获取证书用于TLS指纹
 		addr := *sni
 		if _, _, err := net.SplitHostPort(addr); err != nil {
 			addr = *sni + ":443"
@@ -52,13 +52,13 @@ func main() {
 		if err == nil {
 			state := conn.ConnectionState()
 			if len(state.PeerCertificates) > 0 {
-				stolenCertDER = state.PeerCertificates[0].Raw
-				log.Printf("✅ 证书偷取成功: CN=%s", state.PeerCertificates[0].Subject.CommonName)
+				remoteCertDER = state.PeerCertificates[0].Raw
+				log.Printf("✅ 证书获取成功: CN=%s", state.PeerCertificates[0].Subject.CommonName)
 			}
 			conn.Close()
 		}
 	}
-	_ = stolenCertDER // TODO: 用于TLS服务器证书指纹
+	_ = remoteCertDER // TODO: 用于TLS服务器证书指纹
 
 	// AnyConnect Portal 回落页面
 	if *portal != "" {
@@ -78,7 +78,7 @@ func main() {
 	}
 
 	// TCP TLS 监听（同端口）
-	go startTCPListener(*listen, deriveKey(*password), stolenCertDER)
+	go startTCPListener(*listen, deriveKey(*password), remoteCertDER)
 
 	for {
 		conn, err := listener.Accept()
@@ -222,25 +222,25 @@ func deriveKey(password string) []byte {
 }
 
 // startTCPListener TCP TLS 监听（UDP被封时的备用通道）
-func startTCPListener(addr string, psk []byte, stolenCert []byte) {
-	// 用偷来的证书 + 自生成私钥
+func startTCPListener(addr string, psk []byte, remoteCert []byte) {
+	// 使用远端证书 + 自生成私钥
 	var tlsCert tls.Certificate
 	var err error
-	if len(stolenCert) > 0 {
-		// 偷证书模式：用偷来的证书DER + 新私钥
+	if len(remoteCert) > 0 {
+		// 镜像模式：使用远端证书DER + 新私钥
 		key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		tlsCert = tls.Certificate{
-			Certificate: [][]byte{stolenCert},
+			Certificate: [][]byte{remoteCert},
 			PrivateKey:  key,
 		}
-		log.Printf("[TCP] 使用偷取证书 (%d bytes)", len(stolenCert))
+		log.Printf("[TCP] 使用获取远端证书 (%d bytes)", len(remoteCert))
 	} else {
 		tlsCert, err = tls.X509KeyPair(selfSignedCert())
 		if err != nil {
 			log.Printf("[TCP] 证书失败: %v", err)
 			return
 		}
-		log.Printf("[TCP] 偷证书失败，使用自签名")
+		log.Printf("[TCP] 证书获取失败，使用自签名")
 	}
 
 	tlsCfg := &tls.Config{
