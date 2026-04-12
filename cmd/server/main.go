@@ -66,6 +66,7 @@ func main() {
 	}
 
 	cfg := nrup.DefaultConfig()
+	cfg.StreamMode = true
 	cfg.PSK = deriveKey(*password)
 
 	listener, err := nrup.Listen(*listen, cfg)

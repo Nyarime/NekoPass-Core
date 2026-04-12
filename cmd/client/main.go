@@ -292,6 +292,7 @@ func dialNRUP() (*nrup.Conn, error) {
 	cfg := nrup.DefaultConfig()
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
+	cfg.StreamMode = true // TCP代理用流模式，绕过FEC直接nDTLS分片
 	cfg.DisguiseSNI = config.SNI
 
 	if sid, ok := sessionID.Load().(string); ok && sid != "" {
