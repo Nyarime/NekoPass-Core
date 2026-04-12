@@ -27,10 +27,27 @@ nekopass-lite-server -listen :443 -password "your-password"
 ### 客户端
 
 ```bash
-nekopass-lite-client -server your-server:443 -password "your-password" -listen 127.0.0.1:1080
+nekopass-lite-client -c config.yaml
 ```
 
-然后设置系统代理为 `socks5://127.0.0.1:1080`。
+```yaml
+# config.yaml
+server: "your-server.com:443"
+password: "your-password"
+disgrise: "anyconnect"
+
+proxy:
+  http: "127.0.0.1:7890"     # HTTP/HTTPS 代理
+  socks5: "127.0.0.1:7891"   # SOCKS5 代理
+
+rules:
+  - "DOMAIN-KEYWORD,baidu,DIRECT"
+  - "DOMAIN-KEYWORD,bilibili,DIRECT"
+  - "GEOIP,CN,DIRECT"
+  - "MATCH,PROXY"
+```
+
+默认配置绕过 CN 流量，其余全走代理。规则语法与 Clash 一致。
 
 ## 参数
 
@@ -81,11 +98,15 @@ go build -o nekopass-lite-client ./cmd/client
 |------|:---:|:---:|
 | NRUP 传输 | ✅ | ✅ |
 | AnyConnect/QUIC 伪装 | ✅ | ✅ |
+| Cisco ASA Portal | ✅ | ✅ |
 | 0-RTT 重连 | ✅ | ✅ |
+| HTTP/HTTPS 代理 | ✅ | ✅ |
 | SOCKS5 代理 | ✅ | ✅ |
+| 分流规则 (Clash 语法) | ✅ | ✅ |
+| GEOIP CN 直连 | ✅ | ✅ |
+| YAML 配置 | ✅ | ✅ |
 | 密码认证 | ✅ | ✅ |
 | TLS 伪装 | ❌ | ✅ |
-| 智能分流规则 | ❌ | ✅ |
 | TUN 全局代理 | ❌ | ✅ |
 | 多节点切换 | ❌ | ✅ |
 | Master 管控 | ❌ | ✅ |

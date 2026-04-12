@@ -1,0 +1,40 @@
+# NekoPass Lite 客户端配置
+# CN 流量直连，其余走代理
+
+server: "your-server.com:443"
+password: "your-password"
+disguise: "anyconnect"
+
+# 代理监听
+proxy:
+  http: "127.0.0.1:7890"     # HTTP/HTTPS 代理
+  socks5: "127.0.0.1:7891"   # SOCKS5 代理（支持 UDP）
+
+# TUN 模式（可选）
+# tun:
+#   enable: false
+#   name: "utun8"
+#   mtu: 1400
+#   dns: "8.8.8.8"
+
+# 分流规则（默认绕过 CN）
+rules:
+  - "DOMAIN-SUFFIX,cn,DIRECT"
+  - "DOMAIN-SUFFIX,local,DIRECT"
+  - "DOMAIN-KEYWORD,baidu,DIRECT"
+  - "DOMAIN-KEYWORD,aliyun,DIRECT"
+  - "DOMAIN-KEYWORD,tencent,DIRECT"
+  - "DOMAIN-KEYWORD,weixin,DIRECT"
+  - "DOMAIN-KEYWORD,qq.com,DIRECT"
+  - "DOMAIN-KEYWORD,taobao,DIRECT"
+  - "DOMAIN-KEYWORD,jd.com,DIRECT"
+  - "DOMAIN-KEYWORD,bilibili,DIRECT"
+  - "DOMAIN-KEYWORD,163.com,DIRECT"
+  - "DOMAIN-KEYWORD,douyin,DIRECT"
+  - "DOMAIN-KEYWORD,bytedance,DIRECT"
+  - "IP-CIDR,10.0.0.0/8,DIRECT"
+  - "IP-CIDR,127.0.0.0/8,DIRECT"
+  - "IP-CIDR,172.16.0.0/12,DIRECT"
+  - "IP-CIDR,192.168.0.0/16,DIRECT"
+  - "GEOIP,CN,DIRECT"
+  - "MATCH,PROXY"
