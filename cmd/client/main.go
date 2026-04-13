@@ -8,6 +8,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -25,6 +27,8 @@ type Config struct {
 	SNI       string `yaml:"sni"`
 	Transport string `yaml:"transport"` // udp(default) / tcp / auto
 	Mode      string `yaml:"mode"`      // rule(default) / global / direct
+	SystemProxy bool   `yaml:"system_proxy"` // 启动时设置系统代理
+	GFWList     bool   `yaml:"gfwlist"`       // 加载GFWList规则
 
 	Proxy struct {
 		Listen string `yaml:"listen"`
@@ -70,6 +74,24 @@ func main() {
 
 	if config.TUN.Enable {
 		go startTUN()
+	}
+
+	// GFWList
+	if config.GFWList {
+		go loadGFWList()
+	}
+
+	// 系统代理
+	if config.SystemProxy {
+		setSystemProxy(config.Proxy.Listen)
+		// 退出时恢复
+		go func() {
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+			<-c
+			clearSystemProxy()
+			os.Exit(0)
+		}()
 	}
 
 	// 单端口监听：自动识别 SOCKS5 / HTTP
