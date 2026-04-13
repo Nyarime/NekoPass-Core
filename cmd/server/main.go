@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"crypto/rand"
 	"io"
 	"log"
 	"net"
@@ -25,7 +26,13 @@ func main() {
 	flag.Parse()
 
 	if *password == "" {
-		log.Fatal("请指定 -password")
+		// 自动生成强密码
+		randBytes := make([]byte, 32)
+		rand.Read(randBytes)
+		generated := fmt.Sprintf("%x", randBytes)
+		password = &generated
+		log.Printf("⚠️ 未指定密码，已自动生成: %s", generated)
+		log.Printf("客户端请使用此密码连接")
 	}
 
 	// 获取远端证书
