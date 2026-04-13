@@ -1,25 +1,19 @@
 package main
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
-	"encoding/pem"
 	"flag"
 	"fmt"
 	"io"
 	"log"
-	"math/big"
 	"net"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/nyarime/nrup"
+	"github.com/nyarime/nrtp"
 )
 
 func main() {
@@ -79,7 +73,7 @@ func main() {
 	}
 
 	// TCP TLS 监听（同端口）
-	go startTCPListener(*listen, deriveKey(*password), remoteCertDER)
+	go startNRTP(*listen, *password, *sni)
 
 	for {
 		conn, err := listener.Accept()
@@ -223,105 +217,6 @@ func deriveKey(password string) []byte {
 }
 
 // startTCPListener TCP TLS 监听（UDP被封时的备用通道）
-func startTCPListener(addr string, psk []byte, remoteCert []byte) {
-	// 使用远端证书 + 自生成私钥
-	var tlsCert tls.Certificate
-	var err error
-	if len(remoteCert) > 0 {
-		// 镜像模式：使用远端证书DER + 新私钥
-		key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-		tlsCert = tls.Certificate{
-			Certificate: [][]byte{remoteCert},
-			PrivateKey:  key,
-		}
-		log.Printf("[TCP] 使用获取远端证书 (%d bytes)", len(remoteCert))
-	} else {
-		tlsCert, err = tls.X509KeyPair(selfSignedCert())
-		if err != nil {
-			log.Printf("[TCP] 证书失败: %v", err)
-			return
-		}
-		log.Printf("[TCP] 证书获取失败，使用自签名")
-	}
-
-	tlsCfg := &tls.Config{
-		Certificates: []tls.Certificate{tlsCert},
-		MinVersion:   tls.VersionTLS12,
-	}
-
-	ln, err := tls.Listen("tcp", addr, tlsCfg)
-	if err != nil {
-		// 端口可能被UDP占了，换一个
-		// TCP用+1端口
-		host, port, _ := net.SplitHostPort(addr)
-		p := 0
-		fmt.Sscanf(port, "%d", &p)
-		addr2 := fmt.Sprintf("%s:%d", host, p+1)
-		ln, err = tls.Listen("tcp", addr2, tlsCfg)
-		if err != nil {
-			log.Printf("[TCP] 监听失败: %v", err)
-			return
-		}
-		log.Printf("[TCP] TLS 监听 %s", addr2)
-	} else {
-		log.Printf("[TCP] TLS 监听 %s", addr)
-	}
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			continue
-		}
-		go handleTCPConn(conn, psk)
-	}
-}
-
-func handleTCPConn(conn net.Conn, psk []byte) {
-	defer conn.Close()
-
-	// 简单PSK验证：客户端发32字节PSK hash
-	authBuf := make([]byte, 32)
-	if _, err := io.ReadFull(conn, authBuf); err != nil {
-		return
-	}
-
-	// 验证
-	expected := sha256.Sum256(psk)
-	match := true
-	for i := range authBuf {
-		if authBuf[i] != expected[i] {
-			match = false
-		}
-	}
-	if !match {
-		return
-	}
-	conn.Write([]byte{0x01}) // 认证成功
-
-	// 后续跟UDP模式相同：读目标地址 → 转发
-	handleConn(conn)
-}
-
-// selfSignedCert 生成自签名证书（开发/临时用）
-func selfSignedCert() ([]byte, []byte) {
-
-	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	template := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject:      pkix.Name{CommonName: "vpn2fa.hku.hk"},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
-		DNSNames:     []string{"vpn2fa.hku.hk"},
-	}
-	certDER, _ := x509.CreateCertificate(rand.Reader, template, template, &key.PublicKey, key)
-	keyDER, _ := x509.MarshalECPrivateKey(key)
-
-	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
-	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
-	return certPEM, keyPEM
-}
-
-// handleUDPForward 服务端UDP转发
 func handleUDPForward(conn net.Conn, target string) {
 	rAddr, err := net.ResolveUDPAddr("udp", target)
 	if err != nil {
@@ -375,5 +270,42 @@ func chunkedCopy(dst, src net.Conn) {
 			if _, werr := dst.Write(buf[:n]); werr != nil { return }
 		}
 		if err != nil { return }
+	}
+}
+
+// startNRTP 用NRTP库启动TCP通道
+func startNRTP(addr, password, sni string) {
+	nrtpCfg := &nrtp.Config{
+		Password: password,
+		Mode:     "tls",
+		SNI:      sni,
+	}
+	if sni != "" {
+		nrtpCfg.Mode = "fake-tls"
+	}
+
+	listener, err := nrtp.Listen(addr, nrtpCfg)
+	if err != nil {
+		// 端口可能被UDP占了，用+1
+		host, port, _ := net.SplitHostPort(addr)
+		p := 0
+		fmt.Sscanf(port, "%d", &p)
+		addr2 := fmt.Sprintf("%s:%d", host, p+1)
+		listener, err = nrtp.Listen(addr2, nrtpCfg)
+		if err != nil {
+			log.Printf("[NRTP] 监听失败: %v", err)
+			return
+		}
+		log.Printf("[NRTP] TCP 监听 %s", addr2)
+	} else {
+		log.Printf("[NRTP] TCP 监听 %s", addr)
+	}
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			continue
+		}
+		go handleConn(conn)
 	}
 }

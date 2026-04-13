@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"crypto/sha256"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +14,7 @@ import (
 	"flag"
 
 	"github.com/nyarime/nrup"
+	"github.com/nyarime/nrtp"
 	"gopkg.in/yaml.v3"
 )
 
@@ -316,20 +316,12 @@ func dialNRUP() (*nrup.Conn, error) {
 }
 
 func dialTCP() (net.Conn, error) {
-	tlsCfg := &tls.Config{InsecureSkipVerify: true, ServerName: config.SNI}
-	conn, err := tls.Dial("tcp", config.Server, tlsCfg)
-	if err != nil {
-		return nil, fmt.Errorf("TCP TLS: %w", err)
+	nrtpCfg := &nrtp.Config{
+		Password: config.Password,
+		Mode:     "tls",
+		SNI:      config.SNI,
 	}
-	psk := deriveKey(config.Password)
-	auth := sha256.Sum256(psk)
-	conn.Write(auth[:])
-	ack := make([]byte, 1)
-	if _, err := conn.Read(ack); err != nil || ack[0] != 0x01 {
-		conn.Close()
-		return nil, fmt.Errorf("TCP auth failed")
-	}
-	return conn, nil
+	return nrtp.Dial(config.Server, nrtpCfg)
 }
 
 func proxyTo(target string, local net.Conn) {
