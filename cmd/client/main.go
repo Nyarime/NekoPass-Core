@@ -450,9 +450,6 @@ func isChinaIP(ip net.IP) bool {
 
 // === TUN ===
 
-func startTUN() {
-	log.Printf("TUN 模式暂不支持当前平台")
-}
 
 // === 工具 ===
 
