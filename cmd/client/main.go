@@ -302,7 +302,7 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 		go func() { defer wg.Done(); io.Copy(conn, remote) }()
 		wg.Wait()
 	} else {
-		remote, err := dialForTCP()
+		remote, err := smartDialForTCP()
 		if err != nil {
 			return
 		}
@@ -323,24 +323,6 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 
 // === NRUP 连接 ===
 
-// dialForTCP TCP代理走TLS隧道（可靠，大包无问题）
-func dialForTCP() (net.Conn, error) {
-	conn, err := dialTCP()
-	if err != nil {
-		// TCP失败降级到NRUP StreamMode
-		return dialNRUPStream()
-	}
-	return conn, nil
-}
-
-// dialForUDP UDP代理走NRUP（FEC抗丢包）
-func dialForUDP() (net.Conn, error) {
-	conn, err := dialNRUP()
-	if err != nil {
-		return dialTCP()
-	}
-	return conn, nil
-}
 
 func dialNRUP() (*nrup.Conn, error) {
 	cfg := nrup.DefaultConfig()
@@ -370,7 +352,7 @@ func dialTCP() (net.Conn, error) {
 }
 
 func proxyTo(target string, local net.Conn) {
-	remote, err := dialForTCP()
+	remote, err := smartDialForTCP()
 	if err != nil {
 		log.Printf("NRUP 连接失败: %v", err)
 		return

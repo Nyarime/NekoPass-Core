@@ -110,7 +110,7 @@ func udpRelay(udpConn *net.UDPConn, tcpConn net.Conn) {
 
 // udpProxyPacket 通过NRUP转发单个UDP包
 func udpProxyPacket(udpConn *net.UDPConn, clientAddr *net.UDPAddr, target string, header, payload []byte) {
-	remote, err := dialForUDP()
+	remote, err := smartDialForUDP()
 	if err != nil {
 		return
 	}

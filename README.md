@@ -128,3 +128,15 @@ Set system proxy to `127.0.0.1:1080` (HTTP/HTTPS/SOCKS5 auto-detected).
 - **Smart routing** — Clash-compatible rules, CN bypassed by default
 - **Single port** — HTTP/HTTPS/SOCKS5 + UDP on :1080
 - **Single binary** — Zero dependencies
+
+## 智能传输
+
+UDP (NRUP) 和 TCP (NRTP) 自动切换：
+
+```
+UDP 正常 → 用 NRUP (FEC 抗丢包)
+UDP 连续3次失败 → 自动降级 TCP (NRTP)
+每5分钟探测 UDP → 恢复了自动切回
+```
+
+无需手动配置，全自动。

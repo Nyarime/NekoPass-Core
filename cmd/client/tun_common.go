@@ -11,7 +11,7 @@ func handleTUNTCPCommon(target string) {
 	if !shouldProxy(target) {
 		return
 	}
-	remote, err := dialForTCP()
+	remote, err := smartDialForTCP()
 	if err != nil {
 		log.Printf("[TUN] TCP %s 连接失败: %v", target, err)
 		return
@@ -43,7 +43,7 @@ func handleTUNUDPCommon(target string, payload []byte) {
 		}
 		return
 	}
-	remote, err := dialForUDP()
+	remote, err := smartDialForUDP()
 	if err != nil { return }
 	defer remote.Close()
 	remote.Write([]byte("UDP:" + target))
