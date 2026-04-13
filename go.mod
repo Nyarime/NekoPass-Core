@@ -3,7 +3,7 @@ module github.com/nyarime/nekopass-lite
 go 1.25.0
 
 require (
-	github.com/nyarime/nrtp v1.1.0
+	github.com/nyarime/nrtp v1.1.1
 	github.com/nyarime/nrup v1.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )
