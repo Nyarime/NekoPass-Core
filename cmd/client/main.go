@@ -218,15 +218,21 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 	}
 
 	// HTTP: GET http://host/path HTTP/1.1
-	// 简单处理：提取host，转发
+	// 保存完整请求头
 	target := ""
+	var headers []string
+	headers = append(headers, line)
 	for {
 		l, err := br.ReadString('\n')
-		if err != nil || l == "\r\n" || l == "\n" {
+		if err != nil {
 			break
 		}
+		headers = append(headers, l)
 		if strings.HasPrefix(strings.ToLower(l), "host:") {
 			target = strings.TrimSpace(l[5:])
+		}
+		if l == "\r\n" || l == "\n" {
+			break
 		}
 	}
 	if target == "" {
@@ -236,13 +242,15 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 		target += ":80"
 	}
 
+	fullReq := strings.Join(headers, "")
+
 	if !shouldProxy(target) {
 		remote, err := net.Dial("tcp", target)
 		if err != nil {
 			return
 		}
 		defer remote.Close()
-		remote.Write([]byte(line))
+		remote.Write([]byte(fullReq))
 		var wg sync.WaitGroup
 		wg.Add(2)
 		go func() { defer wg.Done(); io.Copy(remote, conn) }()
@@ -259,7 +267,7 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 		if _, err := remote.Read(ack); err != nil || ack[0] != 0x01 {
 			return
 		}
-		remote.Write([]byte(line))
+		remote.Write([]byte(fullReq))
 		var wg sync.WaitGroup
 		wg.Add(2)
 		go func() { defer wg.Done(); io.Copy(remote, conn) }()
