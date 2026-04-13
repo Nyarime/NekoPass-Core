@@ -1,4 +1,4 @@
-// +build linux darwin
+//go:build linux || darwin
 
 package main
 
@@ -176,7 +176,7 @@ func startTUN() {
 			if syn {
 				// 新TCP连接
 				tcpCount++
-				go handleTUNTCP(connKey, target)
+				go handleTUNTCPCommon(target)
 			}
 
 		case 17: // UDP
@@ -189,74 +189,12 @@ func startTUN() {
 			target := fmt.Sprintf("%s:%d", dstIP, dstPort)
 			udpCount++
 
-			go handleTUNUDP(target, payload)
+			go handleTUNUDPCommon(target, payload)
 		}
 	}
 }
 
-func handleTUNTCP(connKey, target string) {
-	if !shouldProxy(target) {
-		// 直连不需要TUN处理
-		return
-	}
 
-	remote, err := dialForTCP()
-	if err != nil {
-		log.Printf("[TUN] TCP %s 连接失败: %v", target, err)
-		return
-	}
-
-	connTrack.Set(connKey, remote)
-	defer func() {
-		remote.Close()
-		connTrack.Delete(connKey)
-	}()
-
-	// 发送目标地址
-	remote.Write([]byte(target))
-	ack := make([]byte, 1)
-	if _, err := remote.Read(ack); err != nil || ack[0] != 0x01 {
-		return
-	}
-
-	// 保持连接（等数据或超时）
-	remote.SetReadDeadline(time.Now().Add(5 * time.Minute))
-	buf := make([]byte, 4096)
-	for {
-		_, err := remote.Read(buf)
-		if err != nil {
-			return
-		}
-		remote.SetReadDeadline(time.Now().Add(5 * time.Minute))
-	}
-}
-
-func handleTUNUDP(target string, payload []byte) {
-	if !shouldProxy(target) {
-		addr, _ := net.ResolveUDPAddr("udp", target)
-		if addr != nil {
-			conn, _ := net.DialUDP("udp", nil, addr)
-			if conn != nil {
-				conn.Write(payload)
-				conn.Close()
-			}
-		}
-		return
-	}
-
-	remote, err := dialForUDP()
-	if err != nil {
-		return
-	}
-	defer remote.Close()
-
-	remote.Write([]byte("UDP:" + target))
-	ack := make([]byte, 1)
-	if _, err := remote.Read(ack); err != nil || ack[0] != 0x01 {
-		return
-	}
-	remote.Write(payload)
-}
 
 func run(name string, args ...string) {
 	if err := exec.Command(name, args...).Run(); err != nil {
