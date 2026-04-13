@@ -138,6 +138,7 @@ func handleSOCKS5(conn net.Conn, firstByte byte) {
 	}
 
 	target := parseSOCKS5Addr(buf[:n])
+	if target != "" { go cacheDNS(target) }
 	if target == "" {
 		return
 	}
@@ -399,6 +400,12 @@ func shouldProxy(host string) bool {
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		domain = h
 	}
+	// DNS缓存反查(TUN域名分流)
+	if ip := net.ParseIP(domain); ip != nil {
+		if cached := lookupDomain(domain); cached != "" {
+			domain = cached
+		}
+	}
 
 	for _, r := range rules {
 		switch r.Type {
@@ -496,4 +503,22 @@ func dialNRUPStream() (*nrup.Conn, error) {
 	if err != nil { return nil, err }
 	sessionID.Store(conn.SessionID())
 	return conn, nil
+}
+
+// DNS缓存：IP→域名映射（TUN域名分流用）
+var dnsCache sync.Map // string(IP) → string(domain)
+
+func cacheDNS(domain string) {
+	addrs, err := net.LookupHost(domain)
+	if err != nil { return }
+	for _, addr := range addrs {
+		dnsCache.Store(addr, domain)
+	}
+}
+
+func lookupDomain(ip string) string {
+	if v, ok := dnsCache.Load(ip); ok {
+		return v.(string)
+	}
+	return ""
 }
