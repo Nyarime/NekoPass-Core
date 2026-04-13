@@ -151,3 +151,11 @@ UDP 连续3次失败 → 自动降级 TCP (NRTP)
 ```
 
 无需手动配置，全自动。
+
+## TUI 终端界面
+
+```bash
+nekopass-lite-client -c config.yaml --tui
+```
+
+快捷键: `T` TUN / `S` 系统代理 / `M` 模式 / `1-3` 切换页面 / `Q` 退出
