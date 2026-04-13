@@ -95,6 +95,7 @@ func main() {
 			signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 			<-c
 			clearSystemProxy()
+			bridge.Close()
 			os.Exit(0)
 		}()
 	}

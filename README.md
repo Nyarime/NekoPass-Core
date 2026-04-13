@@ -136,6 +136,8 @@ NRUP(UDP)和NRTP(TCP)共享状态：
 - UDP状态同步：SmartTransport读取
 - 共用PSK密钥
 - 零开销（同进程指针共享）
+- 3秒同步间隔 + context可停止
+- 优雅退出: bridge.Close()
 
 ## 智能传输
 

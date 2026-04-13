@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"sync"
 	"time"
@@ -8,26 +9,25 @@ import (
 	"github.com/nyarime/nrtp"
 )
 
-// Bridge NRUP↔NRTP 内部通信桥
-// 同进程共享状态，零开销
+// Bridge NRUP↔NRTP 内部状态桥
+// 同进程共享，零网络开销
 type Bridge struct {
-	mu       sync.RWMutex
-	PSK      []byte  // 共用密钥
-	CertDER  []byte  // 证书 (NRTP获取→NRUP使用)
-	LossRate float64 // 丢包率 (NRUP更新→NRTP读取)
-	UDPOk    bool    // UDP可用性
-	SNI      string  // 共用SNI
+	mu      sync.RWMutex
+	PSK     []byte
+	CertDER []byte
+	UDPOk   bool
+	SNI     string
+	cancel  context.CancelFunc
 }
 
 var bridge = &Bridge{UDPOk: true}
 
-// initBridge 初始化桥接（启动时调用）
 func initBridge() {
 	bridge.PSK = deriveKey(config.Password)
 	bridge.SNI = config.SNI
 	bridge.UDPOk = true
 
-	// NRTP获取证书 → 共享给NRUP
+	// NRTP获取证书 → 共享给NRUP nDTLS
 	if config.SNI != "" {
 		certDER, err := nrtp.FetchCert(config.SNI)
 		if err == nil && len(certDER) > 0 {
@@ -35,51 +35,46 @@ func initBridge() {
 			bridge.CertDER = certDER
 			bridge.mu.Unlock()
 			log.Printf("[Bridge] 证书共享: %s (%d bytes)", config.SNI, len(certDER))
+		} else {
+			log.Printf("[Bridge] 证书获取失败: %v (nDTLS将不带证书)", err)
 		}
 	}
 
-	// 后台同步NRUP指标
-	go bridge.syncLoop()
+	// 后台同步状态（3秒间隔，可停止）
+	ctx, cancel := context.WithCancel(context.Background())
+	bridge.cancel = cancel
+	go bridge.syncLoop(ctx)
+	log.Printf("[Bridge] NRUP↔NRTP 桥接就绪")
 }
 
-// syncLoop 定期同步NRUP连接指标到Bridge
-func (b *Bridge) syncLoop() {
-	// SmartTransport的recordSuccess/Failure已经在更新transport.udpAvailable
-	// Bridge只需要映射这个状态
+func (b *Bridge) syncLoop(ctx context.Context) {
+	ticker := time.NewTicker(3 * time.Second)
+	defer ticker.Stop()
+
 	for {
 		select {
-		case <-make(chan struct{}): // placeholder
+		case <-ctx.Done():
 			return
-		default:
+		case <-ticker.C:
+			b.mu.Lock()
+			b.UDPOk = transport.udpAvailable.Load()
+			b.mu.Unlock()
 		}
-
-		b.mu.Lock()
-		b.UDPOk = transport.udpAvailable.Load()
-		b.mu.Unlock()
-
-		// 每秒同步一次（轻量）
-		<-after(1)
 	}
 }
 
-
-func after(seconds int) <-chan struct{} {
-	ch := make(chan struct{})
-	go func() {
-		<-time.After(time.Duration(seconds) * time.Second)
-		close(ch)
-	}()
-	return ch
+func (b *Bridge) Close() {
+	if b.cancel != nil {
+		b.cancel()
+	}
 }
 
-// GetCertDER Bridge获取共享证书
 func (b *Bridge) GetCertDER() []byte {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return b.CertDER
 }
 
-// IsUDPOk Bridge获取UDP状态
 func (b *Bridge) IsUDPOk() bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
