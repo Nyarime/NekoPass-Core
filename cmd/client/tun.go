@@ -11,58 +11,16 @@ import (
 	"os/exec"
 	"runtime"
 	"sync"
-	"time"
 
 	"github.com/songgao/water"
 )
 
-type tunConnTrack struct {
-	mu    sync.RWMutex
-	conns map[string]net.Conn // srcIP:srcPort-dstIP:dstPort → proxy conn
-}
 
-var connTrack = &tunConnTrack{conns: make(map[string]net.Conn)}
 
-func (t *tunConnTrack) Get(key string) (net.Conn, bool) {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-	c, ok := t.conns[key]
-	return c, ok
-}
 
-func (t *tunConnTrack) Set(key string, conn net.Conn) {
-	t.mu.Lock()
-	t.conns[key] = conn
-	t.mu.Unlock()
-}
 
-func (t *tunConnTrack) Delete(key string) {
-	t.mu.Lock()
-	delete(t.conns, key)
-	t.mu.Unlock()
-}
 
 // 定期清理过期连接
-func (t *tunConnTrack) cleanup() {
-	for {
-		time.Sleep(60 * time.Second)
-		t.mu.Lock()
-		// 简单策略：超过1000个连接时清理一半
-		if len(t.conns) > 1000 {
-			count := 0
-			for k, c := range t.conns {
-				c.Close()
-				delete(t.conns, k)
-				count++
-				if count >= 500 {
-					break
-				}
-			}
-			log.Printf("[TUN] 清理 %d 个过期连接", count)
-		}
-		t.mu.Unlock()
-	}
-}
 
 func startTUN() {
 	tunCfg := water.Config{DeviceType: water.TUN}

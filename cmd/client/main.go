@@ -51,6 +51,7 @@ var (
 
 func main() {
 	cfgFile := flag.String("c", "config.yaml", "配置文件")
+	tuiMode := flag.Bool("tui", false, "TUI界面模式")
 	flag.Parse()
 
 	data, err := os.ReadFile(*cfgFile)
@@ -93,6 +94,25 @@ func main() {
 			os.Exit(0)
 		}()
 	}
+	// TUI模式
+	if *tuiMode {
+		go func() {
+			// 后台启动代理服务
+			ln, _ := net.Listen("tcp", config.Proxy.Listen)
+			if ln != nil {
+				go func() {
+					for {
+						conn, err := ln.Accept()
+						if err != nil { continue }
+						go handleMixed(conn)
+					}
+				}()
+			}
+		}()
+		startTUI()
+		return
+	}
+
 
 	// 单端口监听：自动识别 SOCKS5 / HTTP
 	ln, err := net.Listen("tcp", config.Proxy.Listen)
