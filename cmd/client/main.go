@@ -75,6 +75,7 @@ func main() {
 	mode := config.Mode; if mode == "" { mode = "rule" }
 	log.Printf("NekoPass Lite → %s (模式: %s)", config.Server, mode)
 	initRules(config.Rules)
+	initBridge()
 
 	if config.TUN.Enable {
 		go startTUN()
@@ -332,6 +333,10 @@ func dialNRUP() (*nrup.Conn, error) {
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
 	cfg.DisguiseSNI = config.SNI
+	// Bridge: 共享证书给nDTLS
+	if cert := bridge.GetCertDER(); len(cert) > 0 {
+		cfg.CertDER = cert
+	}
 
 	if sid, ok := sessionID.Load().(string); ok && sid != "" {
 		cfg.ResumeID = sid
@@ -523,6 +528,10 @@ func dialNRUPStream() (*nrup.Conn, error) {
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
 	cfg.DisguiseSNI = config.SNI
+	// Bridge: 共享证书给nDTLS
+	if cert := bridge.GetCertDER(); len(cert) > 0 {
+		cfg.CertDER = cert
+	}
 	if sid, ok := sessionID.Load().(string); ok && sid != "" {
 		cfg.ResumeID = sid
 	}

@@ -129,6 +129,14 @@ Set system proxy to `127.0.0.1:1080` (HTTP/HTTPS/SOCKS5 auto-detected).
 - **Single port** — HTTP/HTTPS/SOCKS5 + UDP on :1080
 - **Single binary** — Zero dependencies
 
+## NRUP↔NRTP Bridge
+
+NRUP(UDP)和NRTP(TCP)共享状态：
+- 证书共享：NRTP获取→NRUP nDTLS也用
+- UDP状态同步：SmartTransport读取
+- 共用PSK密钥
+- 零开销（同进程指针共享）
+
 ## 智能传输
 
 UDP (NRUP) 和 TCP (NRTP) 自动切换：
