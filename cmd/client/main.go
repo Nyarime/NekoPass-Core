@@ -29,6 +29,9 @@ type Config struct {
 	Mode      string `yaml:"mode"`      // rule(default) / global / direct
 	SystemProxy bool   `yaml:"system_proxy"` // 启动时设置系统代理
 	GFWList     bool   `yaml:"gfwlist"`       // 加载GFWList规则
+	Smart struct {
+		RecoverInterval string `yaml:"recover_interval"` // 默认5m
+	} `yaml:"smart"`
 
 	Proxy struct {
 		Listen string `yaml:"listen"`

@@ -45,3 +45,7 @@ system_proxy: false
 
 # GFWList（自动加载被墙域名规则）
 gfwlist: true
+
+# 智能传输
+smart:
+  recover_interval: "5m"  # UDP恢复探测间隔

@@ -2,17 +2,16 @@ package main
 
 import (
 	"log"
+	"net"
 	"sync"
 	"sync/atomic"
 	"time"
-	"net"
 )
 
-// transportManager 智能传输管理（UDP↔TCP自动切换）
 type transportManager struct {
 	udpAvailable atomic.Bool
 	failures     atomic.Int64
-	lastProbe    time.Time
+	probeCount   int
 	mu           sync.Mutex
 }
 
@@ -23,36 +22,51 @@ func init() {
 	go transport.probeLoop()
 }
 
-// probeLoop 定期探测UDP是否恢复
+func (t *transportManager) recoverInterval() time.Duration {
+	if config.Smart.RecoverInterval != "" {
+		if d, err := time.ParseDuration(config.Smart.RecoverInterval); err == nil {
+			return d
+		}
+	}
+	return 5 * time.Minute
+}
+
+// probeLoop 指数退避探测UDP恢复
 func (t *transportManager) probeLoop() {
+	baseInterval := t.recoverInterval()
+	backoff := baseInterval
+
 	for {
-		time.Sleep(5 * time.Minute)
+		time.Sleep(backoff)
+
 		if !t.udpAvailable.Load() {
-			// UDP之前失败过，尝试恢复
-			log.Printf("[Transport] 探测UDP恢复...")
+			log.Printf("[Transport] 探测UDP恢复 (间隔%v)...", backoff)
 			conn, err := dialNRUP()
 			if err == nil {
 				conn.Close()
 				t.udpAvailable.Store(true)
 				t.failures.Store(0)
+				t.probeCount = 0
+				backoff = baseInterval
 				log.Printf("[Transport] ✅ UDP已恢复，切回NRUP")
 			} else {
-				log.Printf("[Transport] UDP仍不可用，继续TCP")
+				t.probeCount++
+				// 指数退避: 5m → 10m → 20m，最大20m
+				backoff = baseInterval * time.Duration(1<<uint(min(t.probeCount, 2)))
+				log.Printf("[Transport] UDP仍不可用，下次%v后重试", backoff)
 			}
 		}
 	}
 }
 
-// recordUDPFailure 记录UDP失败
 func (t *transportManager) recordUDPFailure() {
 	count := t.failures.Add(1)
 	if count >= 3 && t.udpAvailable.Load() {
 		t.udpAvailable.Store(false)
-		log.Printf("[Transport] ⚠️ UDP连续%d次失败，降级到TCP", count)
+		log.Printf("[Transport] ⚠️ UDP连续%d次失败，降级TCP", count)
 	}
 }
 
-// recordUDPSuccess 记录UDP成功
 func (t *transportManager) recordUDPSuccess() {
 	t.failures.Store(0)
 	if !t.udpAvailable.Load() {
@@ -61,7 +75,6 @@ func (t *transportManager) recordUDPSuccess() {
 	}
 }
 
-// smartDialForTCP TCP代理：优先TCP，失败走NRUP
 func smartDialForTCP() (net.Conn, error) {
 	conn, err := dialTCP()
 	if err != nil {
@@ -70,13 +83,10 @@ func smartDialForTCP() (net.Conn, error) {
 	return conn, nil
 }
 
-// smartDialForUDP UDP代理：优先NRUP(FEC)，不可用时走TCP
 func smartDialForUDP() (net.Conn, error) {
 	if !transport.udpAvailable.Load() {
-		// UDP不可用，直接走TCP
 		return dialTCP()
 	}
-
 	conn, err := dialNRUP()
 	if err != nil {
 		transport.recordUDPFailure()
@@ -84,4 +94,9 @@ func smartDialForUDP() (net.Conn, error) {
 	}
 	transport.recordUDPSuccess()
 	return conn, nil
+}
+
+func min(a, b int) int {
+	if a < b { return a }
+	return b
 }
