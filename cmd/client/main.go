@@ -482,7 +482,6 @@ func dialNRUPStream() (*nrup.Conn, error) {
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
 	cfg.DisguiseSNI = config.SNI
-	cfg.StreamMode = true
 	if sid, ok := sessionID.Load().(string); ok && sid != "" {
 		cfg.ResumeID = sid
 	}
