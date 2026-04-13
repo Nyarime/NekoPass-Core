@@ -24,6 +24,7 @@ type Config struct {
 	Disguise  string `yaml:"disguise"`
 	SNI       string `yaml:"sni"`
 	Transport string `yaml:"transport"` // udp(default) / tcp / auto
+	Mode      string `yaml:"mode"`      // rule(default) / global / direct
 
 	Proxy struct {
 		Listen string `yaml:"listen"`
@@ -63,7 +64,8 @@ func main() {
 		config.Proxy.Listen = "127.0.0.1:1080"
 	}
 
-	log.Printf("NekoPass Lite → %s (伪装: %s)", config.Server, config.Disguise)
+	mode := config.Mode; if mode == "" { mode = "rule" }
+	log.Printf("NekoPass Lite → %s (模式: %s)", config.Server, mode)
 	initRules(config.Rules)
 
 	if config.TUN.Enable {
@@ -385,6 +387,14 @@ func initRules(raw []string) {
 }
 
 func shouldProxy(host string) bool {
+	// mode快捷判断
+	switch config.Mode {
+	case "global":
+		return true // 全部代理
+	case "direct":
+		return false // 全部直连
+	}
+	// rule模式：走规则
 	domain := host
 	if h, _, err := net.SplitHostPort(host); err == nil {
 		domain = h

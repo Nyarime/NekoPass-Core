@@ -3,6 +3,7 @@
 
 server: "your-server.com:443"
 password: "your-password"
+mode: "rule"              # rule(分流) / global(全代理) / direct(全直连)
 sni: "vpn2fa.hku.hk"
 transport: "auto"      # auto(默认) / udp / tcp
 
