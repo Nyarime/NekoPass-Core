@@ -49,6 +49,7 @@ func (t *transportManager) probeLoop() {
 				t.probeCount = 0
 				backoff = baseInterval
 				log.Printf("[Transport] ✅ UDP已恢复，切回NRUP")
+			if bridge != nil { bridge.NotifyUDPChange(true) }
 			} else {
 				t.probeCount++
 				// 指数退避: 5m → 10m → 20m，最大20m
@@ -64,6 +65,7 @@ func (t *transportManager) recordUDPFailure() {
 	if count >= 3 && t.udpAvailable.Load() {
 		t.udpAvailable.Store(false)
 		log.Printf("[Transport] ⚠️ UDP连续%d次失败，降级TCP", count)
+		if bridge != nil { bridge.NotifyUDPChange(false) }
 	}
 }
 
@@ -72,6 +74,7 @@ func (t *transportManager) recordUDPSuccess() {
 	if !t.udpAvailable.Load() {
 		t.udpAvailable.Store(true)
 		log.Printf("[Transport] ✅ UDP恢复")
+		if bridge != nil { bridge.NotifyUDPChange(true) }
 	}
 }
 

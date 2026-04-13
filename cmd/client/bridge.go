@@ -4,30 +4,38 @@ import (
 	"context"
 	"log"
 	"sync"
-	"time"
+	"sync/atomic"
 
 	"github.com/nyarime/nrtp"
 )
 
-// Bridge NRUP↔NRTP 内部状态桥
-// 同进程共享，零网络开销
+// Bridge NRUP↔NRTP 事件驱动状态桥
 type Bridge struct {
-	mu      sync.RWMutex
-	PSK     []byte
-	CertDER []byte
-	UDPOk   bool
-	SNI     string
-	cancel  context.CancelFunc
+	mu           sync.RWMutex
+	CertDER      []byte
+	PSK          []byte
+	SNI          string
+	udpAvailable atomic.Bool
+	notifyCh     chan bool
+	ctx          context.Context
+	cancel       context.CancelFunc
+	closed       atomic.Bool
 }
 
-var bridge = &Bridge{UDPOk: true}
+var bridge *Bridge
 
 func initBridge() {
-	bridge.PSK = deriveKey(config.Password)
-	bridge.SNI = config.SNI
-	bridge.UDPOk = true
+	ctx, cancel := context.WithCancel(context.Background())
+	bridge = &Bridge{
+		PSK:      deriveKey(config.Password),
+		SNI:      config.SNI,
+		notifyCh: make(chan bool, 1),
+		ctx:      ctx,
+		cancel:   cancel,
+	}
+	bridge.udpAvailable.Store(true)
 
-	// NRTP获取证书 → 共享给NRUP nDTLS
+	// 证书共享
 	if config.SNI != "" {
 		certDER, err := nrtp.FetchCert(config.SNI)
 		if err == nil && len(certDER) > 0 {
@@ -36,37 +44,42 @@ func initBridge() {
 			bridge.mu.Unlock()
 			log.Printf("[Bridge] 证书共享: %s (%d bytes)", config.SNI, len(certDER))
 		} else {
-			log.Printf("[Bridge] 证书获取失败: %v (nDTLS将不带证书)", err)
+			log.Printf("[Bridge] 证书获取失败: %v", err)
 		}
 	}
 
-	// 后台同步状态（3秒间隔，可停止）
-	ctx, cancel := context.WithCancel(context.Background())
-	bridge.cancel = cancel
-	go bridge.syncLoop(ctx)
-	log.Printf("[Bridge] NRUP↔NRTP 桥接就绪")
+	go bridge.monitorLoop()
+	log.Printf("[Bridge] NRUP↔NRTP 桥接就绪 (事件驱动)")
 }
 
-func (b *Bridge) syncLoop(ctx context.Context) {
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
+// NotifyUDPChange 状态变化时立即通知（<1ms）
+func (b *Bridge) NotifyUDPChange(available bool) {
+	if b.closed.Load() {
+		return
+	}
+	b.udpAvailable.Store(available)
+	select {
+	case b.notifyCh <- available:
+	default:
+	}
+}
 
+func (b *Bridge) monitorLoop() {
 	for {
 		select {
-		case <-ctx.Done():
+		case <-b.ctx.Done():
 			return
-		case <-ticker.C:
-			b.mu.Lock()
-			b.UDPOk = transport.udpAvailable.Load()
-			b.mu.Unlock()
+		case state := <-b.notifyCh:
+			log.Printf("[Bridge] UDP状态更新: %v", state)
 		}
 	}
 }
 
 func (b *Bridge) Close() {
-	if b.cancel != nil {
-		b.cancel()
+	if b.closed.Swap(true) {
+		return
 	}
+	b.cancel()
 }
 
 func (b *Bridge) GetCertDER() []byte {
@@ -76,7 +89,5 @@ func (b *Bridge) GetCertDER() []byte {
 }
 
 func (b *Bridge) IsUDPOk() bool {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-	return b.UDPOk
+	return b.udpAvailable.Load()
 }
