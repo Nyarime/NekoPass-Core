@@ -41,7 +41,9 @@ func (t *transportManager) probeLoop() {
 		// FEC效果差时延长探测间隔
 		sleep := backoff
 		if t.lastFECEff > 0 && t.lastFECEff < 0.5 {
-			sleep = backoff * 3 / 2 // 延长50%
+			mult := config.Smart.ProbeMultiplier
+			if mult <= 0 { mult = 1.5 }
+			sleep = time.Duration(float64(backoff) * mult)
 		}
 		time.Sleep(sleep)
 
@@ -68,10 +70,11 @@ func (t *transportManager) probeLoop() {
 
 func (t *transportManager) recordUDPFailure() {
 	count := t.failures.Add(1)
-	// FEC效果差+丢包多→提前降级(2次就降)
+	// FEC效果差+丢包多→提前降级
 	threshold := int64(3)
 	if t.lastFECEff > 0 && t.lastFECEff < 0.4 {
-		threshold = 2
+		threshold = int64(config.Smart.FECThreshold)
+		if threshold <= 0 { threshold = 2 }
 	}
 	if count >= threshold && t.udpAvailable.Load() {
 		if threshold < 3 { log.Printf("[Smart] FEC效果差(%.0f%%) → 提前降级TCP", t.lastFECEff*100) }

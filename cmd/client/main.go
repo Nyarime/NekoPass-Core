@@ -30,7 +30,9 @@ type Config struct {
 	SystemProxy bool   `yaml:"system_proxy"` // 启动时设置系统代理
 	GFWList     bool   `yaml:"gfwlist"`       // 加载GFWList规则
 	Smart struct {
-		RecoverInterval string `yaml:"recover_interval"` // 默认5m
+		RecoverInterval string  `yaml:"recover_interval"` // 默认5m
+		FECThreshold    int     `yaml:"fec_threshold"`     // FEC差时降级阀值(默认2, 正常3)
+		ProbeMultiplier float64 `yaml:"probe_multiplier"`  // FEC差时探测延长倍率(默认1.5)
 	} `yaml:"smart"`
 
 	Proxy struct {
