@@ -13,6 +13,7 @@ type transportManager struct {
 	failures     atomic.Int64
 	probeCount   int
 	mu           sync.Mutex
+	lastFECEff   float64 // 最近FEC有效性
 }
 
 var transport = &transportManager{}
@@ -37,7 +38,12 @@ func (t *transportManager) probeLoop() {
 	backoff := baseInterval
 
 	for {
-		time.Sleep(backoff)
+		// FEC效果差时延长探测间隔
+		sleep := backoff
+		if t.lastFECEff > 0 && t.lastFECEff < 0.5 {
+			sleep = backoff * 3 / 2 // 延长50%
+		}
+		time.Sleep(sleep)
 
 		if !t.udpAvailable.Load() {
 			log.Printf("[Transport] 探测UDP恢复 (间隔%v)...", backoff)
@@ -62,9 +68,14 @@ func (t *transportManager) probeLoop() {
 
 func (t *transportManager) recordUDPFailure() {
 	count := t.failures.Add(1)
-	if count >= 3 && t.udpAvailable.Load() {
+	// FEC效果差+丢包多→提前降级(2次就降)
+	threshold := int64(3)
+	if t.lastFECEff > 0 && t.lastFECEff < 0.4 {
+		threshold = 2
+	}
+	if count >= threshold && t.udpAvailable.Load() {
 		t.udpAvailable.Store(false)
-		log.Printf("[Transport] ⚠️ UDP连续%d次失败，降级TCP", count)
+		log.Printf("[Transport] ⚠️ UDP连续%d次失败，降级TCP (FEC效率%.0f%%)", count, t.lastFECEff*100)
 		if bridge != nil { bridge.NotifyUDPChange(false) }
 	}
 }
@@ -76,6 +87,11 @@ func (t *transportManager) recordUDPSuccess() {
 		log.Printf("[Transport] ✅ UDP恢复")
 		if bridge != nil { bridge.NotifyUDPChange(true) }
 	}
+}
+
+// updateFECEffectiveness 从 NRUP Conn 更新FEC有效性
+func (t *transportManager) updateFECEffectiveness(eff float64) {
+	t.lastFECEff = eff
 }
 
 func smartDialForTCP() (net.Conn, error) {
