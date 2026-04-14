@@ -74,6 +74,7 @@ func (t *transportManager) recordUDPFailure() {
 		threshold = 2
 	}
 	if count >= threshold && t.udpAvailable.Load() {
+		if threshold < 3 { log.Printf("[Smart] FEC效果差(%.0f%%) → 提前降级TCP", t.lastFECEff*100) }
 		t.udpAvailable.Store(false)
 		log.Printf("[Transport] ⚠️ UDP连续%d次失败，降级TCP (FEC效率%.0f%%)", count, t.lastFECEff*100)
 		if bridge != nil { bridge.NotifyUDPChange(false) }

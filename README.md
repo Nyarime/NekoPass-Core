@@ -159,3 +159,8 @@ nekopass-lite-client -c config.yaml --tui
 ```
 
 快捷键: `T` TUN / `S` 系统代理 / `M` 模式 / `1-3` 切换页面 / `Q` 退出
+
+## 弱网优化 (v1.4.1)
+- SACK选择性重传（只重传真正丢失的包）
+- FEC有效性反馈（动态调整冗余率）
+- SmartTransport+FEC协同（FEC效果差→提前降级TCP）
