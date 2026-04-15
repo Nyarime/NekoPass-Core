@@ -11,7 +11,7 @@ import (
 	"github.com/xtaci/smux"
 )
 
-const maxSessions = 4
+const maxSessions = 8
 
 type MuxPool struct {
 	mu       sync.Mutex

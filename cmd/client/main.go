@@ -124,7 +124,14 @@ func main() {
 
 	// 单端口监听：自动识别 SOCKS5 / HTTP
 	log.Printf("\u9884\u70ed NRTP session...")
-	muxPool.Warm(3) // \u5148\u9884\u70ed\uff0c\u963b\u585e\u7b49\u5f85
+	sessions := 8
+	for muxPool.getSessionCount() == 0 {
+		muxPool.Warm(sessions)
+		if muxPool.getSessionCount() == 0 {
+			log.Printf("预热失败，5秒后重试...")
+			time.Sleep(5 * time.Second)
+		}
+	} // \u5148\u9884\u70ed\uff0c\u963b\u585e\u7b49\u5f85
 
 	ln, err := net.Listen("tcp", config.Proxy.Listen)
 	if err != nil {
