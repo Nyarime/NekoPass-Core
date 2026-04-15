@@ -370,9 +370,11 @@ func startNRTP(addr, password, sni string, portalHandler http.Handler) {
 	if sni != "" {
 		nrtpCfg.Mode = "fake-tls"
 	}
-	// v1.5.3: 非法连接回落Portal (同端口)
-	if true {
-		nrtpCfg.FallbackCfg = &nrtp.Fallback{Mode: "portal"}
+	// v1.5.3: 非法连接→本地Portal (embed模板)
+	portalMux := buildPortalMux("default")
+	nrtpCfg.FallbackCfg = &nrtp.Fallback{
+		Mode:        "handler",
+		HTTPHandler: portalMux,
 	}
 
 	listener, err := nrtp.Listen(addr, nrtpCfg)
@@ -535,4 +537,55 @@ func startCertRefresh(sni string, interval time.Duration) {
 		}
 		conn.Close()
 	}
+}
+
+// buildPortalMux 构建Portal HTTP handler (embed模板)
+func buildPortalMux(tpl string) http.Handler {
+	tplDir := "templates/" + tpl
+	mux := http.NewServeMux()
+
+	serveFile := func(path, contentType string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Content-Security-Policy", "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'; base-uri 'self'; block-all-mixed-content")
+			expired := "Thu, 01 Jan 1970 22:00:00 GMT"
+			for _, name := range []string{"webvpn", "webvpnc", "webvpn_portal", "webvpnlogin", "webvpn_as"} {
+				if name == "webvpnlogin" {
+					w.Header().Add("Set-Cookie", name+"=1; path=/; secure")
+				} else {
+					w.Header().Add("Set-Cookie", name+"=; expires="+expired+"; path=/; secure")
+				}
+			}
+			if contentType != "" { w.Header().Set("Content-Type", contentType) }
+			data, err := templates.ReadFile(tplDir + path)
+			if err != nil { http.NotFound(w, r); return }
+			w.Write(data)
+		}
+	}
+
+	// 首页JS跳转
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprint(w, `<html><script>
+document.cookie = "tg=; expires=Thu, 01 Jan 1970 22:00:00 GMT; path=/; secure";
+document.cookie = "sdesktop=; expires=Thu, 01 Jan 1970 22:00:00 GMT; path=/; secure";
+document.location.replace("/+CSCOE+/logon.html");
+</script></html>`)
+	})
+
+	mux.HandleFunc("/+CSCOE+/logon.html", serveFile("/+CSCOE+/logon.html", "text/html; charset=utf-8"))
+	mux.HandleFunc("/+CSCOE+/logon_custom.css", serveFile("/+CSCOE+/logon_custom.css", "text/css"))
+	mux.HandleFunc("/+CSCOE+/win.js", serveFile("/+CSCOE+/win.js", "application/javascript"))
+	mux.HandleFunc("/+CSCOE+/blank.html", serveFile("/+CSCOE+/blank.html", "text/html"))
+	mux.HandleFunc("/+CSCOU+/csco_logo.gif", serveFile("/+CSCOU+/csco_logo.gif", "image/gif"))
+	mux.HandleFunc("/+CSCOU+/portal.css", serveFile("/+CSCOU+/portal.css", "text/css"))
+	mux.HandleFunc("/+CSCOE+/saml/sp/login", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/+CSCOE+/logon.html", http.StatusFound)
+	})
+
+	return mux
 }
