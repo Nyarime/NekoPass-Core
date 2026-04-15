@@ -127,45 +127,50 @@ func handleConn(conn net.Conn) {
 // startPortal 启动 AnyConnect Portal 回落页面
 // 当 DPI 或浏览器直接访问时，返回 Cisco ASA 风格的 SSL VPN 登录页
 func startPortal(addr, title string) {
+	// 选择模板: sjsu(默认) 或 hku
+	tpl := "sjsu"
+	if title == "hku" || title == "HKU" {
+		tpl = "hku"
+	}
+	tplDir := "templates/" + tpl
+
 	mux := http.NewServeMux()
 
-	// Cisco ASA AnyConnect Portal 页面
+	// 首页: JS跳转(真实ASA行为)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Server", "Cisco ASA SSL VPN")
-		w.Header().Set("X-Powered-By", "Cisco Systems, Inc.")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprint(w, portalHTML)
+		fmt.Fprint(w, `<html><script>
+document.cookie = "tg=; expires=Thu, 01 Jan 1970 22:00:00 GMT; path=/; secure";
+document.cookie = "sdesktop=; expires=Thu, 01 Jan 1970 22:00:00 GMT; path=/; secure";
+document.location.replace("/+CSCOE+/logon.html");
+</script></html>`)
 	})
 
-	// AnyConnect 客户端探测端点
-	mux.HandleFunc("/+CSCOE+/logon.html", func(w http.ResponseWriter, r *http.Request) {
+	serveFile := func(path, contentType string) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Server", "Cisco ASA SSL VPN")
+			if contentType != "" { w.Header().Set("Content-Type", contentType) }
+			data, err := templates.ReadFile(tplDir + path)
+			if err != nil { http.NotFound(w, r); return }
+			w.Write(data)
+		}
+	}
+
+	mux.HandleFunc("/+CSCOE+/logon.html", serveFile("/+CSCOE+/logon.html", "text/html; charset=utf-8"))
+	mux.HandleFunc("/+CSCOE+/logon_custom.css", serveFile("/+CSCOE+/logon_custom.css", "text/css"))
+	mux.HandleFunc("/+CSCOE+/win.js", serveFile("/+CSCOE+/win.js", "application/javascript"))
+	mux.HandleFunc("/+CSCOE+/blank.html", serveFile("/+CSCOE+/blank.html", "text/html"))
+	mux.HandleFunc("/+CSCOU+/csco_logo.gif", serveFile("/+CSCOU+/csco_logo.gif", "image/gif"))
+	mux.HandleFunc("/+CSCOU+/portal.css", serveFile("/+CSCOU+/portal.css", "text/css"))
+	mux.HandleFunc("/+CSCOU+/login-header-icon.jpg", serveFile("/+CSCOU+/login-header-icon.jpg", "image/jpeg"))
+	mux.HandleFunc("/+CSCOU+/login-header-end.jpg", serveFile("/+CSCOU+/login-header-end.jpg", "image/jpeg"))
+	mux.HandleFunc("/+CSCOU+/login-header-middle.jpg", serveFile("/+CSCOU+/login-header-middle.jpg", "image/jpeg"))
+	mux.HandleFunc("/+CSCOU+/gradient.gif", serveFile("/+CSCOU+/gradient.gif", "image/gif"))
+	mux.HandleFunc("/+CSCOE+/saml/sp/login", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Server", "Cisco ASA SSL VPN")
-		fmt.Fprint(w, portalHTML)
+		http.Redirect(w, r, "/+CSCOE+/logon.html", http.StatusFound)
 	})
-
-	// AnyConnect XML profile
-	// Cisco logo
-	mux.HandleFunc("/+CSCOU+/csco_logo.gif", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", "Cisco ASA SSL VPN")
-		w.Header().Set("Content-Type", "image/gif")
-		// 1x1 transparent GIF
-		w.Write([]byte{0x47,0x49,0x46,0x38,0x39,0x61,0x01,0x00,0x01,0x00,0x80,0x00,0x00,0xff,0xff,0xff,0x00,0x00,0x00,0x21,0xf9,0x04,0x00,0x00,0x00,0x00,0x00,0x2c,0x00,0x00,0x00,0x00,0x01,0x00,0x01,0x00,0x00,0x02,0x02,0x44,0x01,0x00,0x3b})
-	})
-
-	// login-header-icon
-	mux.HandleFunc("/+CSCOU+/login-header-icon.jpg", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", "Cisco ASA SSL VPN")
-		w.Header().Set("Content-Type", "image/jpeg")
-		w.Write(loginHeaderIcon)
-	})
-
-	mux.HandleFunc("/+CSCOT+/tunnel-group-list.xml", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Server", "Cisco ASA SSL VPN")
-		w.Header().Set("Content-Type", "application/xml")
-		fmt.Fprintf(w, tunnelGroupXML, title)
-	})
-
-	// CONNECT 端点（Cisco AnyConnect 风格）
 	mux.HandleFunc("/CSCOSSLC/tunnel", func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "SSL VPN session required", 403)
 	})

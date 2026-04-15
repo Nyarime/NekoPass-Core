@@ -1,9 +1,6 @@
 package main
 
-import _ "embed"
+import "embed"
 
-//go:embed csco_logo.gif
-var cscoLogo []byte
-
-//go:embed login-header-icon.jpg
-var loginHeaderIcon []byte
+//go:embed templates
+var templates embed.FS
