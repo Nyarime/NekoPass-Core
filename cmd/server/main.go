@@ -402,7 +402,7 @@ func handleStream(stream net.Conn) {
 		return
 	}
 
-	remote, err := net.DialTimeout("tcp", addr, 10*time.Second)
+	remote, err := serverPool.Get("tcp", addr)
 	if err != nil { return }
 	defer remote.Close()
 
