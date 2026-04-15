@@ -344,6 +344,7 @@ func dialNRUP() (*nrup.Conn, error) {
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
 	cfg.DisguiseSNI = config.SNI
+	cfg.HandshakeTimeout = 5 * time.Second // 5秒超时(快速降级TCP)
 	// Bridge: 共享证书给nDTLS
 	if cert := bridge.GetCertDER(); len(cert) > 0 {
 		cfg.CertDER = cert
@@ -364,7 +365,7 @@ func dialNRUP() (*nrup.Conn, error) {
 func dialTCP() (net.Conn, error) {
 	nrtpCfg := &nrtp.Config{
 		Password: config.Password,
-		Mode:     "tls",
+		Mode:     "fake-tls",
 		SNI:      config.SNI,
 	}
 	return nrtp.Dial(config.Server, nrtpCfg)
@@ -542,6 +543,7 @@ func dialNRUPStream() (*nrup.Conn, error) {
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
 	cfg.DisguiseSNI = config.SNI
+	cfg.HandshakeTimeout = 5 * time.Second // 5秒超时(快速降级TCP)
 	// Bridge: 共享证书给nDTLS
 	if cert := bridge.GetCertDER(); len(cert) > 0 {
 		cfg.CertDER = cert
