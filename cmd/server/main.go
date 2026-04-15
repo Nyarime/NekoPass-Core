@@ -571,13 +571,10 @@ func buildPortalMux(tpl string) http.Handler {
 			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
 			w.Header().Set("Content-Security-Policy", "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'; base-uri 'self'; block-all-mixed-content")
 			expired := "Thu, 01 Jan 1970 22:00:00 GMT"
-			for _, name := range []string{"webvpn", "webvpnc", "webvpn_portal", "webvpnlogin", "webvpn_as"} {
-				if name == "webvpnlogin" {
-					w.Header().Add("Set-Cookie", name+"=1; path=/; secure")
-				} else {
-					w.Header().Add("Set-Cookie", name+"=; expires="+expired+"; path=/; secure")
-				}
+			for _, name := range []string{"webvpn", "webvpnc", "webvpn_portal", "acSamlv2Token", "webvpn_as", "webvpnSharePoint", "samlPreauthSessionHash", "acSamlv2Error"} {
+				w.Header().Add("Set-Cookie", name+"=; expires="+expired+"; path=/; secure")
 			}
+			w.Header().Add("Set-Cookie", "webvpnlogin=1; path=/; secure")
 			if contentType != "" { w.Header().Set("Content-Type", contentType) }
 			data, err := templates.ReadFile(tplDir + path)
 			if err != nil { http.NotFound(w, r); return }
