@@ -44,3 +44,5 @@ require (
 	golang.org/x/text v0.36.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 )
+
+replace github.com/nyarime/nrup => ../nrup
