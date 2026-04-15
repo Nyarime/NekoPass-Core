@@ -95,6 +95,7 @@ func main() {
 
 func handleConn(conn net.Conn) {
 	defer conn.Close()
+	defer func() { recover() }() // 防panic
 
 	// 先读4字节判断是否MUX
 	head := make([]byte, 4)
@@ -112,7 +113,7 @@ func handleConn(conn net.Conn) {
 
 	// 非MUX: head里有target开头，继续读完
 	rest := make([]byte, 252)
-	m, _ := conn.Read(rest)
+	m, err := conn.Read(rest); if err != nil || m <= 0 { return }
 	target := strings.TrimRight(string(head[:n]) + string(rest[:m]), "\n")
 
 	// UDP转发

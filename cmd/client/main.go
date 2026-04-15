@@ -127,6 +127,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("代理监听 %s (HTTP/HTTPS/SOCKS5 自动识别)", config.Proxy.Listen)
+	go muxPool.Warm(3) // 预热3个NRTP session
 
 	for {
 		conn, err := ln.Accept()
