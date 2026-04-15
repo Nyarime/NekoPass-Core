@@ -371,6 +371,8 @@ func dialTCP() (net.Conn, error) {
 
 func proxyTo(target string, local net.Conn) {
 	start := time.Now()
+	proxyConns.Add(1)
+	defer proxyConns.Add(-1)
 	remote, err := smartDialForTCP()
 	if err != nil {
 		log.Printf("[PROXY] %s → 连接失败: %v", target, err)

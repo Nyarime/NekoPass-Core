@@ -16,6 +16,7 @@ type transportManager struct {
 	lastFECEff   float64 // 最近FEC有效性
 }
 
+var proxyConns atomic.Int64
 var transport = &transportManager{}
 
 func init() {

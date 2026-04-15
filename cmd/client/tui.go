@@ -136,7 +136,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 
 	case tickMsg:
-		m.conns = len(connTrack.conns)
+		m.conns = int(proxyConns.Load()) + len(connTrack.conns)
 		return m, tickCmd()
 	}
 
