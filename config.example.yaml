@@ -1,12 +1,11 @@
-# NekoPass Lite 客户端配置
-# CN 流量直连，其余走代理
+# NekoPass Core 客户端配置
 
-server: "your-server.com:443"
+server: "your-server.com:39443"
 password: "your-password"
+sni: "vpn.example.edu"
 mode: "rule"              # rule(分流) / global(全代理) / direct(全直连)
-sni: "vpn2fa.hku.hk"
-transport: "auto"      # auto(默认) / udp / tcp
-fec_type: "rs"          # rs(默认) / raptorq / ldpc
+transport: "auto"         # auto(默认) / udp / tcp
+fec_type: "rs"            # rs(默认) / raptorq / ldpc
 
 # 代理监听
 proxy:
@@ -21,6 +20,7 @@ proxy:
 
 # 分流规则（默认绕过 CN）
 rules:
+  # 国内域名直连
   - "DOMAIN-SUFFIX,cn,DIRECT"
   - "DOMAIN-SUFFIX,local,DIRECT"
   - "DOMAIN-KEYWORD,baidu,DIRECT"
@@ -34,10 +34,18 @@ rules:
   - "DOMAIN-KEYWORD,163.com,DIRECT"
   - "DOMAIN-KEYWORD,douyin,DIRECT"
   - "DOMAIN-KEYWORD,bytedance,DIRECT"
+  # IPv4 私有地址
   - "IP-CIDR,10.0.0.0/8,DIRECT"
   - "IP-CIDR,127.0.0.0/8,DIRECT"
   - "IP-CIDR,172.16.0.0/12,DIRECT"
   - "IP-CIDR,192.168.0.0/16,DIRECT"
+  - "IP-CIDR,169.254.0.0/16,DIRECT"
+  # IPv6 私有/本地地址
+  - "IP-CIDR6,::1/128,DIRECT"
+  - "IP-CIDR6,fc00::/7,DIRECT"
+  - "IP-CIDR6,fe80::/10,DIRECT"
+  - "IP-CIDR6,::ffff:0:0/96,DIRECT"
+  # GeoIP
   - "GEOIP,CN,DIRECT"
   - "MATCH,PROXY"
 
@@ -49,4 +57,4 @@ gfwlist: true
 
 # 智能传输
 smart:
-  recover_interval: "5m"  # UDP恢复探测间隔
+  recover_interval: "5m"
