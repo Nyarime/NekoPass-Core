@@ -46,8 +46,8 @@ github.com/muesli/cancelreader v0.2.2 h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELU
 github.com/muesli/cancelreader v0.2.2/go.mod h1:3XuTXfFS2VjM+HTLZY9Ak0l6eUKfijIfMUZ4EgX0QYo=
 github.com/muesli/termenv v0.16.0 h1:S5AlUN9dENB57rsbnkPyfdGuWIlkmzJjbFf0Tf5FWUc=
 github.com/muesli/termenv v0.16.0/go.mod h1:ZRfOIKPFDYQoDFF4Olj7/QJbW60Ol/kL1pU3VfY/Cnk=
-github.com/nyarime/gofec v1.0.0 h1:0ERzg/DH3MWuoen14mk+jjMUNuoW87SD48MLIJ9rGdQ=
-github.com/nyarime/gofec v1.0.0/go.mod h1:IiqozIeFR4BG6MbtzHyq+QMHD8BSKQ3oz2GCxcJEin0=
+github.com/nyarime/gofec v1.1.1 h1:Ra3f8Uo5ICT4ru7xxrGI7QJ9pv9T057EOF0UKdipV8c=
+github.com/nyarime/gofec v1.1.1/go.mod h1:IiqozIeFR4BG6MbtzHyq+QMHD8BSKQ3oz2GCxcJEin0=
 github.com/nyarime/nrtp v1.5.0 h1:yq8JFCo26e/dqGIXJg036hXlBRb7M9hYTlJqUR8rHIY=
 github.com/nyarime/nrtp v1.5.0/go.mod h1:rpf7nQ4nungq2ADAMWGEdCNB6LI3hksv1Wac4HG5uOo=
 github.com/nyarime/nrup v1.5.0 h1:ZXqx/WCG0SJ0Dl+l8c3IkJmXEQ3W0VLhPdTgEDyrXFQ=
