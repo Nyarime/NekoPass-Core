@@ -20,7 +20,7 @@ type transportManager struct {
 var proxyConns atomic.Int64
 var transport = &transportManager{}
 
-func init() {
+func initTransport() {
 	// transport配置决定初始状态
 	switch config.Transport {
 	case "tcp":

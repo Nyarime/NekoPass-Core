@@ -106,18 +106,18 @@ func (p *MuxPool) replaceSession(idx int) {
 }
 
 func (p *MuxPool) addSession() (net.Conn, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
 	conn, session, err := dialMuxSession()
 	if err != nil {
 		return nil, err
 	}
 
+	p.mu.Lock()
 	p.sessions = append(p.sessions, session)
 	p.conns = append(p.conns, conn)
+	p.mu.Unlock()
 	
-	return session.OpenStream()
+	stream, err := session.OpenStream()
+	return stream, err
 }
 
 // Warm 预热多个session
@@ -162,7 +162,7 @@ func dialMuxSession() (net.Conn, *smux.Session, error) {
 	conn.Write([]byte("MUX\n"))
 	ack := make([]byte, 1)
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-	conn.Read(ack)
+	n2, err2 := conn.Read(ack)
 	conn.SetReadDeadline(time.Time{})
 
 	smuxCfg := smux.DefaultConfig()
