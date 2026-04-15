@@ -128,7 +128,7 @@ func handleConn(conn net.Conn) {
 // 当 DPI 或浏览器直接访问时，返回 Cisco ASA 风格的 SSL VPN 登录页
 func startPortal(addr, title string) {
 	// 选择模板: sjsu(默认) 或 hku
-	tpl := "sjsu"
+	tpl := "default"
 	if title == "hku" || title == "HKU" {
 		tpl = "hku"
 	}
@@ -149,7 +149,17 @@ document.location.replace("/+CSCOE+/logon.html");
 
 	serveFile := func(path, contentType string) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Server", "Cisco ASA SSL VPN")
+			// 真实ASA响应头
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("X-XSS-Protection", "1")
+			w.Header().Set("Content-Security-Policy", "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'; base-uri 'self'; block-all-mixed-content")
+			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
+			// Cisco cookies
+			http.SetCookie(w, &http.Cookie{Name: "webvpnlogin", Value: "1", Path: "/", Secure: true})
 			if contentType != "" { w.Header().Set("Content-Type", contentType) }
 			data, err := templates.ReadFile(tplDir + path)
 			if err != nil { http.NotFound(w, r); return }
