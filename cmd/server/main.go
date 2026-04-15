@@ -6,6 +6,8 @@ import (
 	"flag"
 	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"crypto/rand"
 	"io"
 	"log"
@@ -27,6 +29,14 @@ func main() {
 	portal := flag.String("portal", ":39444", "AnyConnect Portal HTTPS 监听 (留空禁用)")
 	portalTitle := flag.String("portal-title", "Employee-SSO", "Portal 页面标题")
 	flag.Parse()
+
+	// stop子命令: 杀所有nekopass-server进程
+	if len(os.Args) > 1 && os.Args[1] == "stop" {
+		out, _ := exec.Command("pkill", "-f", "nekopass-server").CombinedOutput()
+		_ = out
+		fmt.Println("NekoPass Server 已停止")
+		os.Exit(0)
+	}
 
 	if *password == "" {
 		// 自动生成强密码
