@@ -376,11 +376,7 @@ func proxyTo(target string, local net.Conn) {
 	log.Printf("[PROXY] %s → %v", target, time.Since(start).Round(time.Millisecond))
 	addTUILog(fmt.Sprintf("[PROXY] %s → %v", target, time.Since(start).Round(time.Millisecond)))
 
-	remote.Write([]byte(target))
-	ack := make([]byte, 1)
-	if _, err := remote.Read(ack); err != nil || ack[0] != 0x01 {
-		return
-	}
+	remote.Write([]byte(target + "\n"))
 
 	var wg sync.WaitGroup
 	wg.Add(2)

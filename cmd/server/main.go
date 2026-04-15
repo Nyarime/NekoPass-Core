@@ -4,12 +4,14 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"flag"
+	"bufio"
 	"fmt"
 	"crypto/rand"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"github.com/xtaci/smux"
 	"time"
@@ -95,20 +97,21 @@ func main() {
 func handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	buf := make([]byte, 256)
-	n, err := conn.Read(buf)
-	if err != nil || n < 3 {
+	br := bufio.NewReader(conn)
+	line, err := br.ReadString('\n')
+	if err != nil || len(line) < 3 {
 		return
 	}
+	line = strings.TrimSpace(line)
 
 	// MUX多路复用
-	if n == 3 && string(buf[:3]) == "MUX" {
+	if line == "MUX" {
 		conn.Write([]byte{0x01})
 		handleMux(conn)
 		return
 	}
 
-	target := string(buf[:n])
+	target := line
 
 	// UDP转发
 	if len(target) > 4 && target[:4] == "UDP:" {
@@ -383,13 +386,12 @@ func handleMux(conn net.Conn) {
 func handleStream(stream net.Conn) {
 	defer stream.Close()
 
-	buf := make([]byte, 256)
-	n, err := stream.Read(buf)
-	if err != nil || n < 4 {
+	br := bufio.NewReader(stream)
+	line, err := br.ReadString('\n')
+	if err != nil || len(line) < 4 {
 		return
 	}
-
-	target := string(buf[:n])
+	target := strings.TrimSpace(line)
 
 	if len(target) > 4 && target[:4] == "UDP:" {
 		handleUDPForward(stream, target[4:])
@@ -402,11 +404,9 @@ func handleStream(stream net.Conn) {
 	}
 	defer remote.Close()
 
-	stream.Write([]byte{0x01})
-
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go func() { defer wg.Done(); io.Copy(remote, stream) }()
+	go func() { defer wg.Done(); io.Copy(remote, br) }()
 	go func() { defer wg.Done(); io.Copy(stream, remote) }()
 	wg.Wait()
 }
