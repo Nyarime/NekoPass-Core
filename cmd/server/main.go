@@ -158,8 +158,12 @@ document.location.replace("/+CSCOE+/logon.html");
 			w.Header().Set("X-XSS-Protection", "1")
 			w.Header().Set("Content-Security-Policy", "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'; base-uri 'self'; block-all-mixed-content")
 			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
-			// Cisco cookies
-			http.SetCookie(w, &http.Cookie{Name: "webvpnlogin", Value: "1", Path: "/", Secure: true})
+			// Cisco cookies (真实ASA清理+设置)
+			expired := "Thu, 01 Jan 1970 22:00:00 GMT"
+			for _, name := range []string{"webvpn", "webvpnc", "webvpn_portal", "acSamlv2Token", "webvpn_as", "webvpnSharePoint", "samlPreauthSessionHash", "acSamlv2Error"} {
+				w.Header().Add("Set-Cookie", name+"=; expires="+expired+"; path=/; secure")
+			}
+			w.Header().Add("Set-Cookie", "webvpnlogin=1; path=/; secure")
 			if contentType != "" { w.Header().Set("Content-Type", contentType) }
 			data, err := templates.ReadFile(tplDir + path)
 			if err != nil { http.NotFound(w, r); return }
