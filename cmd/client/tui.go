@@ -72,7 +72,7 @@ func newTUIModel() tuiModel {
 	return tuiModel{
 		tab:     0,
 		logs:    []string{"启动中..."},
-		mode:    "rule",
+		mode:    config.Mode,
 		server:  config.Server,
 		proxyOn: true,
 	}
