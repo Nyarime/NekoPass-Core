@@ -147,6 +147,6 @@ func dialMuxSession() (net.Conn, *smux.Session, error) {
 		return nil, nil, err
 	}
 
-	log.Printf("[Mux] session建立 %v (共%d个)", time.Since(start).Round(time.Millisecond), muxPool.getSessionCount()+1)
+	log.Printf("[Mux] session建立 %s (共%d个)", fmtDuration(time.Since(start)), muxPool.getSessionCount()+1)
 	return conn, session, nil
 }

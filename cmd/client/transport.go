@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"sync"
@@ -150,4 +151,15 @@ func getTUILogs() []string {
 	cp := make([]string, len(tuiLogs))
 	copy(cp, tuiLogs)
 	return cp
+}
+
+// fmtDuration 格式化延迟(<1s用ms, >=1s用s)
+func fmtDuration(d time.Duration) string {
+	if d < time.Millisecond {
+		return "<1ms"
+	}
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	return fmt.Sprintf("%.1fs", d.Seconds())
 }

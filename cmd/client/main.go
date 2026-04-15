@@ -374,8 +374,8 @@ func proxyTo(target string, local net.Conn) {
 		return
 	}
 	defer remote.Close()
-	log.Printf("[PROXY] %s → %v", target, time.Since(start).Round(time.Millisecond))
-	addTUILog(fmt.Sprintf("[PROXY] %s → %v", target, time.Since(start).Round(time.Millisecond)))
+	log.Printf("[PROXY] %s → %v", target, fmtDuration(time.Since(start)))
+	addTUILog(fmt.Sprintf("[PROXY] %s → %v", target, fmtDuration(time.Since(start))))
 
 	remote.Write([]byte(target + "\n"))
 
