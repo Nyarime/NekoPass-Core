@@ -210,6 +210,10 @@ document.location.replace("/+CSCOE+/logon.html");
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 			w.Header().Set("X-Content-Type-Options", "nosniff")
 			w.Header().Set("X-XSS-Protection", "1")
+			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
+			w.Header().Set("X-XSS-Protection", "1")
+			w.Header().Set("X-XSS-Protection", "1")
+			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
 			w.Header().Set("Content-Security-Policy", "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'; base-uri 'self'; block-all-mixed-content")
 			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
 			// Cisco cookies (真实ASA清理+设置)
@@ -561,6 +565,10 @@ func buildPortalMux(tpl string) http.Handler {
 			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("X-XSS-Protection", "1")
+			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
+			w.Header().Set("X-XSS-Protection", "1")
+			w.Header().Set("Cross-Origin-Opener-Policy", "same-origin-allow-popups")
 			w.Header().Set("Content-Security-Policy", "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors 'self'; base-uri 'self'; block-all-mixed-content")
 			expired := "Thu, 01 Jan 1970 22:00:00 GMT"
 			for _, name := range []string{"webvpn", "webvpnc", "webvpn_portal", "webvpnlogin", "webvpn_as"} {
