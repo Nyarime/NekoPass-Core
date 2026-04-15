@@ -171,3 +171,27 @@ v1.5.3发版前必须通过:
 - [ ] 三平台编译通过
 - [ ] HK/TW/US三节点代理测试通过
 - [ ] Google/YouTube可正常访问
+
+---
+
+## 发版前验证 (补充)
+
+### JA3S指纹交叉比对
+- 用`ja3-server`或`tshark`抓取:
+  1. 真实Cisco ASA的ServerHello
+  2. NekoPass v1.5.3的ServerHello
+- 逐字段比对: 扩展ID+顺序, CipherSuite选择, Session Ticket行为
+- 工具: `tshark -r capture.pcap -Y "tls.handshake.type==2" -T fields -e tls.handshake.ciphersuite -e tls.handshake.extensions.supported_version`
+
+### 重放探测压力测试
+- 模拟GFW多源高频重放:
+  ```bash
+  # 抓一个合法ClientHello
+  # 从不同IP重放100次
+  for i in $(seq 100); do
+    openssl s_client -connect server:39443 < captured_hello &
+  done
+  ```
+- 验证: Portal回落在高并发下Server/Date头一致性
+- 验证: HMAC时间窗外的重放全部回落Portal
+- 验证: 无内存泄漏/goroutine泄漏
