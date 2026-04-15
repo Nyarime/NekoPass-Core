@@ -48,8 +48,8 @@ github.com/muesli/termenv v0.16.0 h1:S5AlUN9dENB57rsbnkPyfdGuWIlkmzJjbFf0Tf5FWUc
 github.com/muesli/termenv v0.16.0/go.mod h1:ZRfOIKPFDYQoDFF4Olj7/QJbW60Ol/kL1pU3VfY/Cnk=
 github.com/nyarime/nrtp v1.4.1 h1:CuSC3EN7iLcVWedigwwBhGr8Byq1GD1GuafKDDvl+kg=
 github.com/nyarime/nrtp v1.4.1/go.mod h1:J5xWItLnGvOZoPKlCuw/S7lgjTO4A8UwDYAZfrKsbKg=
-github.com/nyarime/nrup v1.3.0 h1:tCfhslEdPy2ygcvzvP8nYWPzUSyqm2AZ9yB7PQkZwI0=
-github.com/nyarime/nrup v1.3.0/go.mod h1:C/kMLKkF/a6ywQdojuDjYfkJ5dqqFk+O+FCOZ9nWObM=
+github.com/nyarime/nrup v1.4.3 h1:MPmjF+MxxdjjWib7325rsjUvYB6H9zgk7AIeZVpM+Zo=
+github.com/nyarime/nrup v1.4.3/go.mod h1:C/kMLKkF/a6ywQdojuDjYfkJ5dqqFk+O+FCOZ9nWObM=
 github.com/refraction-networking/utls v1.8.2 h1:j4Q1gJj0xngdeH+Ox/qND11aEfhpgoEvV+S9iJ2IdQo=
 github.com/refraction-networking/utls v1.8.2/go.mod h1:jkSOEkLqn+S/jtpEHPOsVv/4V4EVnelwbMQl4vCWXAM=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
