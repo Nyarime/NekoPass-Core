@@ -23,7 +23,6 @@ func main() {
 	listen := flag.String("listen", ":443", "监听地址")
 	password := flag.String("password", "", "连接密码")
 	sni := flag.String("sni", "vpn.sjsu.edu", "QUIC 模式 SNI")
-	go serverPool.Preheat()
 	portal := flag.String("portal", ":39444", "AnyConnect Portal HTTPS 监听 (留空禁用)")
 	portalTitle := flag.String("portal-title", "Employee-SSO", "Portal 页面标题")
 	flag.Parse()
@@ -64,7 +63,6 @@ func main() {
 	}
 	_ = remoteCertDER
 
-	go serverPool.Preheat()
 	// AnyConnect Portal 回落页面
 	if *portal != "" {
 		go startPortal(*portal, *portalTitle)
@@ -79,8 +77,8 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("NekoPass Lite Server 监听 %s (UDP: NRUP | TCP: TLS)", *listen)
-	if *portal != "" {
 	go serverPool.Preheat()
+	if *portal != "" {
 		log.Printf("AnyConnect Portal 监听 %s", *portal)
 	}
 
@@ -141,7 +139,6 @@ func handleConn(conn net.Conn) {
 	wg.Wait()
 }
 
-	go serverPool.Preheat()
 // startPortal 启动 AnyConnect Portal 回落页面
 // 当 DPI 或浏览器直接访问时，返回 Cisco ASA 风格的 SSL VPN 登录页
 func startPortal(addr, title string) {
