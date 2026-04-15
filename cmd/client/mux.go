@@ -23,29 +23,41 @@ type MuxPool struct {
 var muxPool = &MuxPool{}
 
 func (p *MuxPool) GetStream() (net.Conn, error) {
-	// round-robin选session
-	for attempts := 0; attempts < maxSessions*2; attempts++ {
-		idx := int(p.robin.Add(1)) % p.getSessionCount()
-		
-		p.mu.Lock()
-		if idx < len(p.sessions) {
-			s := p.sessions[idx]
-			p.mu.Unlock()
-			
-			if s != nil && !s.IsClosed() {
-				stream, err := s.OpenStream()
-				if err == nil {
-					return stream, nil
-				}
-			}
-			// 这个session死了，替换
-			p.replaceSession(idx)
-			continue
-		}
-		p.mu.Unlock()
+	p.mu.Lock()
+	n := len(p.sessions)
+	p.mu.Unlock()
+
+	// 没有session，直接创建
+	if n == 0 {
+		return p.addSession()
 	}
 
-	// 没有可用session，新建
+	// round-robin选session
+	idx := int(p.robin.Add(1)) % n
+	
+	p.mu.Lock()
+	s := p.sessions[idx]
+	p.mu.Unlock()
+	
+	if s != nil && !s.IsClosed() {
+		stream, err := s.OpenStream()
+		if err == nil {
+			return stream, nil
+		}
+	}
+
+	// session死了或OpenStream失败，替换
+	p.replaceSession(idx)
+	
+	// 重试一次
+	p.mu.Lock()
+	if idx < len(p.sessions) && p.sessions[idx] != nil && !p.sessions[idx].IsClosed() {
+		s2 := p.sessions[idx]
+		p.mu.Unlock()
+		return s2.OpenStream()
+	}
+	p.mu.Unlock()
+	
 	return p.addSession()
 }
 
