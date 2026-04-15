@@ -393,12 +393,9 @@ func handleMux(conn net.Conn) {
 func handleStream(stream net.Conn) {
 	defer stream.Close()
 
-	// v1.5.0: 解析0-RTT二进制帧
+	// v1.5.0: 0-RTT二进制帧
 	network, addr, err := nrtp.ParseTargetFrame(stream)
-	if err != nil {
-		// 兼容旧协议(target\n)
-		return
-	}
+	if err != nil { return }
 
 	if network == "udp" {
 		handleUDPForward(stream, addr)
