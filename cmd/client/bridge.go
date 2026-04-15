@@ -38,17 +38,17 @@ func initBridge() {
 	}
 	bridge.udpAvailable.Store(true)
 
-	// 证书共享
+	// 证书共享(异步，不阻塞启动)
 	if config.SNI != "" {
-		certDER, err := nrtp.FetchCert(config.SNI)
-		if err == nil && len(certDER) > 0 {
-			bridge.mu.Lock()
-			bridge.CertDER = certDER
-			bridge.mu.Unlock()
-			log.Printf("[Bridge] 证书共享: %s (%d bytes)", config.SNI, len(certDER))
-		} else {
-			log.Printf("[Bridge] 证书获取失败: %v", err)
-		}
+		go func() {
+			certDER, err := nrtp.FetchCert(config.SNI)
+			if err == nil && len(certDER) > 0 {
+				bridge.mu.Lock()
+				bridge.CertDER = certDER
+				bridge.mu.Unlock()
+				log.Printf("[Bridge] 证书共享: %s (%d bytes)", config.SNI, len(certDER))
+			}
+		}()
 	}
 
 	go bridge.monitorLoop()
