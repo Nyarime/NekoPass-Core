@@ -5,8 +5,8 @@ go 1.25.5
 require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/nyarime/nrtp v1.5.0
-	github.com/nyarime/nrup v1.5.0
+	github.com/nyarime/nrtp v1.5.1
+	github.com/nyarime/nrup v1.5.1
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 	github.com/xtaci/smux v1.5.57
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
