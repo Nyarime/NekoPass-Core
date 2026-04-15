@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"flag"
-	"bufio"
 	"fmt"
 	"crypto/rand"
 	"io"
@@ -97,21 +96,24 @@ func main() {
 func handleConn(conn net.Conn) {
 	defer conn.Close()
 
-	br := bufio.NewReader(conn)
-	line, err := br.ReadString('\n')
-	if err != nil || len(line) < 3 {
+	// 先读4字节判断是否MUX
+	head := make([]byte, 4)
+	n, err := io.ReadFull(conn, head)
+	if err != nil || n < 3 {
 		return
 	}
-	line = strings.TrimSpace(line)
 
 	// MUX多路复用
-	if line == "MUX" {
+	if string(head[:3]) == "MUX" {
 		conn.Write([]byte{0x01})
 		handleMux(conn)
 		return
 	}
 
-	target := line
+	// 非MUX: head里有target开头，继续读完
+	rest := make([]byte, 252)
+	m, _ := conn.Read(rest)
+	target := strings.TrimRight(string(head[:n]) + string(rest[:m]), "\n")
 
 	// UDP转发
 	if len(target) > 4 && target[:4] == "UDP:" {
@@ -386,27 +388,30 @@ func handleMux(conn net.Conn) {
 func handleStream(stream net.Conn) {
 	defer stream.Close()
 
-	br := bufio.NewReader(stream)
-	line, err := br.ReadString('\n')
-	if err != nil || len(line) < 4 {
-		return
+	// 逐字节读target直到\n(不用bufio，不吃数据)
+	var target []byte
+	b := make([]byte, 1)
+	for len(target) < 256 {
+		_, err := stream.Read(b)
+		if err != nil { return }
+		if b[0] == '\n' { break }
+		target = append(target, b[0])
 	}
-	target := strings.TrimSpace(line)
+	if len(target) < 4 { return }
+	addr := string(target)
 
-	if len(target) > 4 && target[:4] == "UDP:" {
-		handleUDPForward(stream, target[4:])
+	if len(addr) > 4 && addr[:4] == "UDP:" {
+		handleUDPForward(stream, addr[4:])
 		return
 	}
 
-	remote, err := net.DialTimeout("tcp", target, 10*time.Second)
-	if err != nil {
-		return
-	}
+	remote, err := net.DialTimeout("tcp", addr, 10*time.Second)
+	if err != nil { return }
 	defer remote.Close()
 
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go func() { defer wg.Done(); io.Copy(remote, br) }()
+	go func() { defer wg.Done(); io.Copy(remote, stream) }()
 	go func() { defer wg.Done(); io.Copy(stream, remote) }()
 	wg.Wait()
 }
