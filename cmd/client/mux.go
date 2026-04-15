@@ -162,7 +162,7 @@ func dialMuxSession() (net.Conn, *smux.Session, error) {
 	conn.Write([]byte("MUX\n"))
 	ack := make([]byte, 1)
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-	n2, err2 := conn.Read(ack)
+	conn.Read(ack)
 	conn.SetReadDeadline(time.Time{})
 
 	smuxCfg := smux.DefaultConfig()
