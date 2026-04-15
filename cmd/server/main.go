@@ -439,3 +439,59 @@ func handleStream(stream net.Conn) {
 	go func() { defer wg.Done(); io.Copy(stream, remote) }()
 	wg.Wait()
 }
+
+// === P3: AnyConnect XML认证接口 ===
+
+const xmlAuthRequest = `<?xml version="1.0" encoding="UTF-8"?>
+<config-auth client="vpn" type="auth-request" aggregate-auth-version="2">
+<opaque is-for="sg">
+<tunnel-group>%s</tunnel-group>
+<group-alias>%s</group-alias>
+<config-hash>%d</config-hash>
+</opaque>
+<auth id="main">
+<title>Login</title>
+<message>Please enter your username and password.</message>
+<banner></banner>
+<form>
+<input type="text" name="username" label="Username:"></input>
+<input type="password" name="password" label="Password:"></input>
+<select name="group_list" label="GROUP:">
+<option selected="true">%s</option>
+</select>
+</form>
+</auth>
+</config-auth>`
+
+const xmlAuthComplete = `<?xml version="1.0" encoding="UTF-8"?>
+<config-auth client="vpn" type="complete" aggregate-auth-version="2">
+<session-id>%s</session-id>
+<session-token>%s</session-token>
+<auth id="success">
+<title>SSL VPN Service</title>
+<message id="0">Login Successful.</message>
+<banner>&lt;p&gt;Welcome to SSL VPN Service.&lt;/p&gt;</banner>
+</auth>
+<config client="vpn" type="private">
+<vpn-base-config>
+<server-cert-hash>%s</server-cert-hash>
+</vpn-base-config>
+<opaque is-for="vpn-client"></opaque>
+</config>
+</config-auth>`
+
+func handleAnyConnectXML(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/xml; charset=utf-8")
+	w.Header().Set("X-Transcend-Version", "1")
+	w.Header().Set("X-Aggregate-Auth", "1")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+	
+	groupName := "DefaultWEBVPNGroup"
+	configHash := time.Now().Unix()
+	
+	// 返回认证请求(模拟真实ASA)
+	fmt.Fprintf(w, xmlAuthRequest, groupName, groupName, configHash, groupName)
+}
