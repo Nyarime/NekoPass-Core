@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"sync"
+	"github.com/xtaci/smux"
 	"time"
 
 	"github.com/nyarime/nrup"
@@ -96,7 +97,14 @@ func handleConn(conn net.Conn) {
 
 	buf := make([]byte, 256)
 	n, err := conn.Read(buf)
-	if err != nil || n < 4 {
+	if err != nil || n < 3 {
+		return
+	}
+
+	// MUX多路复用
+	if n == 3 && string(buf[:3]) == "MUX" {
+		conn.Write([]byte{0x01})
+		handleMux(conn)
 		return
 	}
 
@@ -351,4 +359,54 @@ func startNRTP(addr, password, sni string) {
 		}
 		go handleConn(conn)
 	}
+}
+
+// handleMux 多路复用处理
+func handleMux(conn net.Conn) {
+	session, err := smux.Server(conn, smux.DefaultConfig())
+	if err != nil {
+		log.Printf("[Mux] 创建session失败: %v", err)
+		return
+	}
+	defer session.Close()
+	log.Printf("[Mux] 新的多路复用连接")
+
+	for {
+		stream, err := session.AcceptStream()
+		if err != nil {
+			return // session关闭
+		}
+		go handleStream(stream)
+	}
+}
+
+func handleStream(stream net.Conn) {
+	defer stream.Close()
+
+	buf := make([]byte, 256)
+	n, err := stream.Read(buf)
+	if err != nil || n < 4 {
+		return
+	}
+
+	target := string(buf[:n])
+
+	if len(target) > 4 && target[:4] == "UDP:" {
+		handleUDPForward(stream, target[4:])
+		return
+	}
+
+	remote, err := net.DialTimeout("tcp", target, 10*time.Second)
+	if err != nil {
+		return
+	}
+	defer remote.Close()
+
+	stream.Write([]byte{0x01})
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() { defer wg.Done(); io.Copy(remote, stream) }()
+	go func() { defer wg.Done(); io.Copy(stream, remote) }()
+	wg.Wait()
 }
