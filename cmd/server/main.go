@@ -84,7 +84,7 @@ func main() {
 	}
 
 	// TCP TLS 监听（同端口）
-	go startNRTP(*listen, *password, *sni)
+	go startNRTP(*listen, *password, *sni, nil)
 
 	for {
 		conn, err := listener.Accept()
@@ -354,7 +354,7 @@ func chunkedCopy(dst, src net.Conn) {
 }
 
 // startNRTP 用NRTP库启动TCP通道
-func startNRTP(addr, password, sni string) {
+func startNRTP(addr, password, sni string, portalHandler http.Handler) {
 	nrtpCfg := &nrtp.Config{
 		Password: password,
 		Mode:     "tls",
@@ -362,6 +362,10 @@ func startNRTP(addr, password, sni string) {
 	}
 	if sni != "" {
 		nrtpCfg.Mode = "fake-tls"
+	}
+	// v1.5.3: 非法连接回落Portal (同端口)
+	if true {
+		nrtpCfg.FallbackCfg = &nrtp.Fallback{Mode: "portal"}
 	}
 
 	listener, err := nrtp.Listen(addr, nrtpCfg)
