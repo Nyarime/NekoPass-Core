@@ -87,7 +87,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("NekoPass Lite Server 监听 %s (UDP: NRUP | TCP: TLS)", *listen)
+	log.Printf("NekoPass Core Server 监听 %s (UDP: NRUP | TCP: TLS)", *listen)
 	go serverPool.Preheat()
 	go startCertRefresh(*sni, 24*time.Hour) // P4: 每24小时刷新证书
 	if *portal != "" {

@@ -1,4 +1,4 @@
-# NekoPass Lite
+# NekoPass Core
 
 轻量级加密代理，流量伪装为 Cisco AnyConnect SSL VPN。
 
@@ -15,7 +15,7 @@
 
 ## 安装
 
-从 [Releases](https://github.com/Nyarime/NekoPass-Lite/releases) 下载对应平台的二进制。
+从 [Releases](https://github.com/Nyarime/NekoPass-Core/releases) 下载对应平台的二进制。
 
 ## 使用
 

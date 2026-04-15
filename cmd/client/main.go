@@ -78,7 +78,7 @@ func main() {
 
 	mode := config.Mode; if mode == "" { mode = "rule" }
 	initTransport()
-	log.Printf("NekoPass Lite → %s (模式: %s)", config.Server, mode)
+	log.Printf("NekoPass Core → %s (模式: %s)", config.Server, mode)
 	initRules(config.Rules)
 	initBridge()
 

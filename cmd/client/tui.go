@@ -166,7 +166,7 @@ func (m tuiModel) View() string {
 		tunStatus = lipgloss.NewStyle().Foreground(colorSuccess).Render("● TUN ON")
 	}
 	header := titleStyle.Width(w).Render(
-		fmt.Sprintf("NekoPass Lite  %s  → %s", tunStatus, m.server))
+		fmt.Sprintf("NekoPass Core  %s  → %s", tunStatus, m.server))
 
 	// Tabs
 	tabs := []string{"Dashboard", "Connections", "Config", "Log"}
