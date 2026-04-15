@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"time"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
