@@ -1,4 +1,4 @@
-module github.com/nyarime/nekopass-lite
+module github.com/nyarime/nekopass-core
 
 go 1.25.5
 
