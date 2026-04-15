@@ -90,3 +90,21 @@ func isTimeoutErr(err error) bool {
 func init() {
 	go serverPool.cleanup()
 }
+
+// Preheat 预热热门目标
+func (p *ConnPool) Preheat() {
+	targets := []string{
+		"www.google.com:443",
+		"github.com:443",
+		"www.youtube.com:443",
+	}
+	for _, t := range targets {
+		go func(addr string) {
+			conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
+			if err == nil {
+				p.Put(addr, conn)
+				log.Printf("[Pool] 预热: %s", addr)
+			}
+		}(t)
+	}
+}
