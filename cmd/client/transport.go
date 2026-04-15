@@ -108,12 +108,19 @@ func (t *transportManager) updateFECEffectiveness(eff float64) {
 	t.lastFECEff = eff
 }
 
+// smartDialForTCP AnyConnect模型:
+// UDP可用 → NRUP(FEC+ARQ加速)
+// UDP不可用 → NRTP mux(Reality TCP)
 func smartDialForTCP() (net.Conn, error) {
-	conn, err := dialTCP()
-	if err != nil {
-		return dialNRUPStream()
+	if transport.udpAvailable.Load() {
+		conn, err := dialNRUP()
+		if err == nil {
+			return conn, nil
+		}
+		transport.recordUDPFailure()
 	}
-	return conn, nil
+	// fallback: NRTP mux
+	return dialTCP()
 }
 
 func smartDialForUDP() (net.Conn, error) {

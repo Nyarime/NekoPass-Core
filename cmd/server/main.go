@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"flag"
+	"bytes"
 	"fmt"
 	"crypto/rand"
 	"io"
@@ -112,7 +113,28 @@ func handleConn(conn net.Conn) {
 		return
 	}
 
-	// 非MUX: head里有target开头，继续读完
+	// v1.5.0: 二进制协议(AnyConnect NRUP路径)
+	if head[0] == 0x01 { // Protocol Version
+		// 拼回已读的4字节+stream
+		prefixed := io.MultiReader(bytes.NewReader(head[:n]), conn)
+		network, addr, err := nrtp.ParseTargetFrame(prefixed)
+		if err != nil { return }
+		if network == "udp" {
+			handleUDPForward(conn, addr)
+			return
+		}
+		remote, err := serverPool.Get("tcp", addr)
+		if err != nil { return }
+		defer remote.Close()
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() { defer wg.Done(); io.Copy(remote, conn) }()
+		go func() { defer wg.Done(); io.Copy(conn, remote) }()
+		wg.Wait()
+		return
+	}
+
+	// 旧协议兼容: target\n
 	rest := make([]byte, 252)
 	m, err := conn.Read(rest); if err != nil || m <= 0 { return }
 	target := strings.TrimRight(string(head[:n]) + string(rest[:m]), "\n")
