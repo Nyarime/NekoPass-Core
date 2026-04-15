@@ -122,12 +122,14 @@ func main() {
 
 
 	// 单端口监听：自动识别 SOCKS5 / HTTP
+	log.Printf("\u9884\u70ed NRTP session...")
+	muxPool.Warm(3) // \u5148\u9884\u70ed\uff0c\u963b\u585e\u7b49\u5f85
+
 	ln, err := net.Listen("tcp", config.Proxy.Listen)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("代理监听 %s (HTTP/HTTPS/SOCKS5 自动识别)", config.Proxy.Listen)
-	go muxPool.Warm(3) // 预热3个NRTP session
 
 	for {
 		conn, err := ln.Accept()
