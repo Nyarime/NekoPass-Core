@@ -16,6 +16,7 @@ type Bridge struct {
 	nrupConn *nrup.Conn // TUI Metrics用
 	mu           sync.RWMutex
 	CertDER      []byte
+	SessionToken string
 	PSK          []byte
 	SNI          string
 	udpAvailable atomic.Bool

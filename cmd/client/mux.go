@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"net"
 	"sync"
@@ -160,10 +161,18 @@ func dialMuxSession() (net.Conn, *smux.Session, error) {
 	}
 
 	conn.Write([]byte("MUX\n"))
-	ack := make([]byte, 1)
+	// P2: 读取ACK(1字节) + session token(32字节)
+	ackBuf := make([]byte, 33)
 	conn.SetReadDeadline(time.Now().Add(10 * time.Second))
-	conn.Read(ack)
+	n, _ := io.ReadFull(conn, ackBuf)
 	conn.SetReadDeadline(time.Time{})
+	if n > 1 {
+		token := string(ackBuf[1:n])
+		bridge.mu.Lock()
+		bridge.SessionToken = token
+		bridge.mu.Unlock()
+		log.Printf("[Mux] Session token: %s...", token[:8])
+	}
 
 	smuxCfg := smux.DefaultConfig()
 	smuxCfg.MaxReceiveBuffer = 16 * 1024 * 1024

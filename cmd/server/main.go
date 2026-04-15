@@ -79,6 +79,7 @@ func main() {
 	}
 	log.Printf("NekoPass Lite Server 监听 %s (UDP: NRUP | TCP: TLS)", *listen)
 	go serverPool.Preheat()
+	go startCertRefresh(*sni, 24*time.Hour) // P4: 每24小时刷新证书
 	if *portal != "" {
 		log.Printf("AnyConnect Portal 监听 %s", *portal)
 	}
@@ -108,7 +109,13 @@ func handleConn(conn net.Conn) {
 
 	// MUX多路复用
 	if string(head[:3]) == "MUX" {
-		conn.Write([]byte{0x01})
+		// P2: 下发session token (0x01 + 32字节hex token)
+		token := nrtp.GenerateSessionToken()
+		ack := make([]byte, 33)
+		ack[0] = 0x01
+		copy(ack[1:], []byte(token))
+		conn.Write(ack)
+		log.Printf("[Mux] Session token: %s", token[:8]+"...")
 		handleMux(conn)
 		return
 	}
@@ -494,4 +501,38 @@ func handleAnyConnectXML(w http.ResponseWriter, r *http.Request) {
 	
 	// 返回认证请求(模拟真实ASA)
 	fmt.Fprintf(w, xmlAuthRequest, groupName, groupName, configHash, groupName)
+}
+
+// === P4: 证书动态刷新 ===
+
+func startCertRefresh(sni string, interval time.Duration) {
+	if sni == "" { return }
+	
+	for {
+		time.Sleep(interval)
+		
+		addr := sni
+		if _, _, err := net.SplitHostPort(addr); err != nil {
+			addr = sni + ":443"
+		}
+		host, _, _ := net.SplitHostPort(addr)
+		
+		conn, err := tls.DialWithDialer(
+			&net.Dialer{Timeout: 10 * time.Second},
+			"tcp", addr,
+			&tls.Config{ServerName: host, InsecureSkipVerify: true},
+		)
+		if err != nil {
+			log.Printf("[CertRefresh] 获取失败: %v", err)
+			continue
+		}
+		
+		state := conn.ConnectionState()
+		if len(state.PeerCertificates) > 0 {
+			newCert := state.PeerCertificates[0].Raw
+			log.Printf("[CertRefresh] ✅ 证书刷新: CN=%s (%d bytes)", 
+				state.PeerCertificates[0].Subject.CommonName, len(newCert))
+		}
+		conn.Close()
+	}
 }
