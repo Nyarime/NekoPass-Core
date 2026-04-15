@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"log"
+	"time"
+	"github.com/nyarime/nrup"
 	"sync"
 	"sync/atomic"
 
@@ -11,6 +13,7 @@ import (
 
 // Bridge NRUP↔NRTP 事件驱动状态桥
 type Bridge struct {
+	nrupConn *nrup.Conn // TUI Metrics用
 	mu           sync.RWMutex
 	CertDER      []byte
 	PSK          []byte
@@ -90,4 +93,33 @@ func (b *Bridge) GetCertDER() []byte {
 
 func (b *Bridge) IsUDPOk() bool {
 	return b.udpAvailable.Load()
+}
+
+// FECStats 返回FEC/SACK统计(TUI用)
+type FECStats struct {
+	Parity      int
+	Effectiveness float64
+	Recovered   int64
+	Decodes     int64
+	LossRate    float64
+	RTT         string
+	Jitter      string
+	RetransmitQ int
+	MTU         int
+}
+
+func (b *Bridge) GetFECStats() *FECStats {
+	if b == nil || b.nrupConn == nil { return nil }
+	s := b.nrupConn.Stats()
+	return &FECStats{
+		Parity:       s.CurrentParity,
+		Effectiveness: s.FECEffectiveness,
+		Recovered:    s.FECRecovered,
+		Decodes:      s.FECDecodes,
+		LossRate:     s.LossRate,
+		RTT:          s.RTT.Round(time.Millisecond).String(),
+		Jitter:       s.Jitter.Round(time.Millisecond).String(),
+		RetransmitQ:  s.RetransmitQ,
+		MTU:          s.MTU,
+	}
 }

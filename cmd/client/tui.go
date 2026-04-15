@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"time"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -197,9 +197,41 @@ func (m tuiModel) View() string {
 				"  1-3 切换页面   Q  退出",
 			))
 
-	case 1: // Connections
+	case 1: // Connections + FEC/SACK Metrics
+		var fecInfo, transportInfo string
+		if s := bridge.GetFECStats(); s != nil {
+			fecInfo = fmt.Sprintf(
+				"  FEC Parity:     %d\n"+
+				"  FEC 有效性:     %.1f%%%%\n"+
+				"  FEC 恢复:       %d/%d\n"+
+				"  丢包率:         %.1f%%%%\n"+
+				"  RTT:            %s\n"+
+				"  Jitter:         %s\n"+
+				"  重传队列:       %d\n"+
+				"  MTU:            %d",
+				s.Parity, s.Effectiveness*100,
+				s.Recovered, s.Decodes,
+				s.LossRate*100, s.RTT, s.Jitter,
+				s.RetransmitQ, s.MTU)
+		} else {
+			fecInfo = "  (NRUP未连接)"
+		}
+		if transport.udpAvailable.Load() {
+			transportInfo = "✅ UDP (NRUP)"
+		} else {
+			transportInfo = "⚠️ TCP (NRTP)"
+		}
 		content = boxStyle.Width(w - 4).Render(
-			fmt.Sprintf("活跃连接: %d\n\n(连接详情待实现)", m.conns))
+			lipgloss.JoinVertical(lipgloss.Left,
+				lipgloss.NewStyle().Bold(true).Render("📊 传输状态"),
+				"",
+				fmt.Sprintf("  活跃连接:     %d", m.conns),
+				fmt.Sprintf("  传输模式:     %s", transportInfo),
+				"",
+				lipgloss.NewStyle().Bold(true).Render("FEC / SACK"),
+				"",
+				fecInfo,
+			))
 
 	case 2: // Config
 		content = boxStyle.Width(w - 4).Render(
