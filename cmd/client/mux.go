@@ -11,7 +11,24 @@ import (
 	"github.com/xtaci/smux"
 )
 
-const maxSessions = 8
+var maxSessions = 8
+
+// adjustSessions 根据session存活率动态调整数量
+func (p *MuxPool) adjustSessions() {
+	p.mu.Lock()
+	alive := 0
+	for _, s := range p.sessions {
+		if s != nil && !s.IsClosed() { alive++ }
+	}
+	p.mu.Unlock()
+
+	ratio := float64(alive) / float64(maxSessions)
+	if ratio < 0.5 && maxSessions < 12 {
+		maxSessions += 2 // 存活率低→加更多session
+	} else if ratio > 0.9 && maxSessions > 6 {
+		maxSessions -= 1 // 存活率高→可以减少
+	}
+}
 
 type MuxPool struct {
 	mu       sync.Mutex
@@ -161,4 +178,13 @@ func dialMuxSession() (net.Conn, *smux.Session, error) {
 
 	log.Printf("[Mux] session建立 %s (共%d个)", fmtDuration(time.Since(start)), muxPool.getSessionCount()+1)
 	return conn, session, nil
+}
+
+func init() {
+	go func() {
+		for {
+			time.Sleep(30 * time.Second)
+			muxPool.adjustSessions()
+		}
+	}()
 }
