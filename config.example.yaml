@@ -1,6 +1,6 @@
 # NekoPass Core 客户端配置
 
-server: "your-server.com:39443"
+server: "your-server.com:443"
 password: "your-password"
 sni: "vpn.example.edu"
 mode: "rule"              # rule(分流) / global(全代理) / direct(全直连)

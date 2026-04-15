@@ -23,10 +23,10 @@
 
 ```bash
 # Fake-TLS模式 (推荐)
-nekopass-server -listen :39443 -password <密码> -sni vpn.example.edu
+nekopass-server -listen :443 -password <密码> -sni vpn.example.edu
 
 # TLS模式
-nekopass-server -listen :39443 -password <密码> -sni ""
+nekopass-server -listen :443 -password <密码> -sni ""
 
 # 停止
 nekopass-server stop
@@ -42,7 +42,7 @@ nekopass-client -c config.yaml -tui    # TUI界面
 ### 配置文件
 
 ```yaml
-server: "your-server.com:39443"
+server: "your-server.com:443"
 password: "your-password"
 sni: "vpn.example.edu"
 transport: "auto"      # auto / udp / tcp
@@ -56,7 +56,7 @@ proxy:
 ## 架构
 
 ```
-客户端                          服务端 (:39443)
+客户端                          服务端 (:443)
   │                                │
   ├─ SOCKS5/HTTP ← 本地代理        │
   │                                │
