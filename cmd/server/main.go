@@ -89,7 +89,7 @@ func main() {
 		if err != nil {
 			continue
 		}
-		go handleConn(conn)
+		log.Printf("[MAIN] NRUP Accept: %T", conn); go handleConn(conn)
 	}
 }
 
@@ -363,7 +363,7 @@ func startNRTP(addr, password, sni string) {
 		if err != nil {
 			continue
 		}
-		go handleConn(conn)
+		log.Printf("[MAIN] NRUP Accept: %T", conn); go handleConn(conn)
 	}
 }
 

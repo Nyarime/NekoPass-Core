@@ -5,9 +5,10 @@ go 1.25.5
 require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/nyarime/nrtp v1.4.1
+	github.com/nyarime/nrtp v1.4.2
 	github.com/nyarime/nrup v1.4.3
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
+	github.com/xtaci/smux v1.5.57
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -37,7 +38,6 @@ require (
 	github.com/refraction-networking/utls v1.8.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	github.com/xtaci/smux v1.5.57 // indirect
 	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sys v0.43.0 // indirect
