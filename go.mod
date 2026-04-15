@@ -47,3 +47,7 @@ require (
 )
 
 replace github.com/nyarime/nrtp => /root/.openclaw/workspace/nrtp
+
+replace github.com/nyarime/nrup => /root/.openclaw/workspace/nrup
+
+replace github.com/nyarime/gofec => /root/.openclaw/workspace/raptorq-go
