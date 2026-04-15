@@ -71,7 +71,7 @@ type tuiModel struct {
 func newTUIModel() tuiModel {
 	return tuiModel{
 		tab:     0,
-		logs:    []string{"启动中..."},
+		logs:    []string{"运行中"},
 		mode:    config.Mode,
 		server:  config.Server,
 		proxyOn: true,
@@ -253,16 +253,14 @@ func (m tuiModel) View() string {
 			))
 	}
 
-	// Logs
-	logLines := m.logs
-	maxLogs := h - 12
-	if maxLogs < 3 {
-		maxLogs = 3
+	// 底部只显示最新1条日志
+	var lastLog string
+	if logs := getTUILogs(); len(logs) > 0 {
+		lastLog = logs[len(logs)-1]
+	} else {
+		lastLog = "运行中"
 	}
-	if len(logLines) > maxLogs {
-		logLines = logLines[len(logLines)-maxLogs:]
-	}
-	logContent := logStyle.Width(w - 4).Render(strings.Join(logLines, "\n"))
+	logContent := logStyle.Width(w - 4).Render(lastLog)
 
 	// Status bar
 	statusBar := statusStyle.Width(w).Render(
