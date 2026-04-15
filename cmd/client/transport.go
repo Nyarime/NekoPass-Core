@@ -20,7 +20,15 @@ var proxyConns atomic.Int64
 var transport = &transportManager{}
 
 func init() {
-	transport.udpAvailable.Store(true)
+	// transport配置决定初始状态
+	switch config.Transport {
+	case "tcp":
+		transport.udpAvailable.Store(false) // 强制TCP
+	case "udp":
+		transport.udpAvailable.Store(true)
+	default: // auto
+		transport.udpAvailable.Store(true) // 先假设可用，SmartTransport自动降级
+	}
 	go transport.probeLoop()
 }
 
