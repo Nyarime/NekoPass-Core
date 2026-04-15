@@ -593,6 +593,10 @@ document.location.replace("/+CSCOE+/logon.html");
 	mux.HandleFunc("/+CSCOE+/blank.html", serveFile("/+CSCOE+/blank.html", "text/html"))
 	mux.HandleFunc("/+CSCOU+/csco_logo.gif", serveFile("/+CSCOU+/csco_logo.gif", "image/gif"))
 	mux.HandleFunc("/+CSCOU+/portal.css", serveFile("/+CSCOU+/portal.css", "text/css"))
+	mux.HandleFunc("/+CSCOU+/login-header-icon.jpg", serveFile("/+CSCOU+/login-header-icon.jpg", "image/jpeg"))
+	mux.HandleFunc("/+CSCOU+/login-header-end.jpg", serveFile("/+CSCOU+/login-header-end.jpg", "image/jpeg"))
+	mux.HandleFunc("/+CSCOU+/login-header-middle.jpg", serveFile("/+CSCOU+/login-header-middle.jpg", "image/jpeg"))
+	mux.HandleFunc("/+CSCOU+/gradient.gif", serveFile("/+CSCOU+/gradient.gif", "image/gif"))
 	mux.HandleFunc("/+CSCOE+/saml/sp/login", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/+CSCOE+/logon.html", http.StatusFound)
 	})
