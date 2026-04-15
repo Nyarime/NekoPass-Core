@@ -15,6 +15,7 @@ type liteSmartDialer struct{}
 func (d *liteSmartDialer) DialUDP(ctx context.Context, addr string) (net.Conn, error) {
 	cfg := nrup.DefaultConfig()
 	cfg.PSK = deriveKey(config.Password)
+	if config.FECType != "" { cfg.FECType = nrup.FECType(config.FECType) }
 	cfg.Disguise = config.Disguise
 	cfg.DisguiseSNI = config.SNI
 	cfg.HandshakeTimeout = 5 * 1e9 // 5秒

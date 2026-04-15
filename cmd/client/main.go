@@ -25,6 +25,7 @@ type Config struct {
 	Server    string `yaml:"server"`
 	Password  string `yaml:"password"`
 	Disguise  string `yaml:"disguise"`
+	FECType   string `yaml:"fec_type"`   // rs(默认) / ldpc / lt
 	SNI       string `yaml:"sni"`
 	Transport string `yaml:"transport"` // udp(default) / tcp / auto
 	Mode      string `yaml:"mode"`      // rule(default) / global / direct
@@ -354,6 +355,7 @@ func dialNRUP() (*nrup.Conn, error) {
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
 	cfg.DisguiseSNI = config.SNI
+	if config.FECType != "" { cfg.FECType = nrup.FECType(config.FECType) }
 	cfg.HandshakeTimeout = 5 * time.Second // 5秒超时(快速降级TCP)
 	// Bridge: 共享证书给nDTLS
 	if cert := bridge.GetCertDER(); len(cert) > 0 {
@@ -544,6 +546,7 @@ func dialNRUPStream() (*nrup.Conn, error) {
 	cfg.PSK = deriveKey(config.Password)
 	cfg.Disguise = config.Disguise
 	cfg.DisguiseSNI = config.SNI
+	if config.FECType != "" { cfg.FECType = nrup.FECType(config.FECType) }
 	cfg.HandshakeTimeout = 5 * time.Second // 5秒超时(快速降级TCP)
 	// Bridge: 共享证书给nDTLS
 	if cert := bridge.GetCertDER(); len(cert) > 0 {
