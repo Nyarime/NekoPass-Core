@@ -101,6 +101,10 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.tab = 1
 		case "3":
 			m.tab = 2
+		case "left":
+			if m.tab > 0 { m.tab-- }
+		case "right":
+			if m.tab < 2 { m.tab++ }
 		case "t":
 			m.tunOn = !m.tunOn
 			if m.tunOn {
