@@ -368,7 +368,11 @@ func startNRTP(addr, password, sni string) {
 
 // handleMux 多路复用处理
 func handleMux(conn net.Conn) {
-	session, err := smux.Server(conn, smux.DefaultConfig())
+	cfg := smux.DefaultConfig()
+	cfg.MaxReceiveBuffer = 16 * 1024 * 1024
+	cfg.KeepAliveInterval = 10 * time.Second
+	cfg.KeepAliveTimeout = 60 * time.Second
+	session, err := smux.Server(conn, cfg)
 	if err != nil {
 		log.Printf("[Mux] 创建session失败: %v", err)
 		return

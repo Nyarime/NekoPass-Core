@@ -27,6 +27,12 @@ func (p *MuxPool) GetStream() (net.Conn, error) {
 		if err == nil {
 			return stream, nil
 		}
+		// session异常,清空让下次重建
+		p.mu.Lock()
+		if p.session == s {
+			p.session = nil
+		}
+		p.mu.Unlock()
 	}
 
 	// 需要新session
@@ -46,6 +52,7 @@ func (p *MuxPool) GetStream() (net.Conn, error) {
 	cfg := smux.DefaultConfig()
 	cfg.MaxReceiveBuffer = 16 * 1024 * 1024 // 16MB
 	cfg.KeepAliveInterval = 10 * time.Second
+	cfg.KeepAliveTimeout = 60 * time.Second
 
 	session, err := smux.Client(conn, cfg)
 	if err != nil {
