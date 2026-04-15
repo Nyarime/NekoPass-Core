@@ -224,9 +224,9 @@ func (m tuiModel) View() string {
 			fecInfo = "  (NRUP未连接)"
 		}
 		if transport.udpAvailable.Load() {
-			transportInfo = "✅ UDP (NRUP)"
+			transportInfo = "NRTP + NRUP (TCP+UDP双通道)"
 		} else {
-			transportInfo = "⚠️ TCP (NRTP)"
+			transportInfo = "NRTP (TCP, UDP不可用)"
 		}
 		content = boxStyle.Width(w - 4).Render(
 			lipgloss.JoinVertical(lipgloss.Left,
