@@ -17,6 +17,7 @@ import (
 	"flag"
 
 	"github.com/nyarime/nrup"
+	"github.com/nyarime/nrtp"
 	"gopkg.in/yaml.v3"
 )
 
@@ -379,7 +380,7 @@ func proxyTo(target string, local net.Conn) {
 	log.Printf("[PROXY] %s → %v", target, fmtDuration(time.Since(start)))
 	addTUILog(fmt.Sprintf("[PROXY] %s → %v", target, fmtDuration(time.Since(start))))
 
-	remote.Write([]byte(target + "\n"))
+	frame, _ := nrtp.EncodeTargetFrame(nrtp.CmdTCPConnect, target); remote.Write(frame)
 
 	var wg sync.WaitGroup
 	wg.Add(2)

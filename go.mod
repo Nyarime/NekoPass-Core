@@ -46,3 +46,5 @@ require (
 )
 
 replace github.com/nyarime/nrup => ../nrup
+
+replace github.com/nyarime/nrtp => ../nrtp

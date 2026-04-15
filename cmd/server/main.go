@@ -393,20 +393,15 @@ func handleMux(conn net.Conn) {
 func handleStream(stream net.Conn) {
 	defer stream.Close()
 
-	// 逐字节读target直到\n(不用bufio，不吃数据)
-	var target []byte
-	b := make([]byte, 1)
-	for len(target) < 256 {
-		_, err := stream.Read(b)
-		if err != nil { return }
-		if b[0] == '\n' { break }
-		target = append(target, b[0])
+	// v1.5.0: 解析0-RTT二进制帧
+	network, addr, err := nrtp.ParseTargetFrame(stream)
+	if err != nil {
+		// 兼容旧协议(target\n)
+		return
 	}
-	if len(target) < 4 { return }
-	addr := string(target)
 
-	if len(addr) > 4 && addr[:4] == "UDP:" {
-		handleUDPForward(stream, addr[4:])
+	if network == "udp" {
+		handleUDPForward(stream, addr)
 		return
 	}
 
