@@ -25,7 +25,7 @@ type Config struct {
 	Server    string `yaml:"server"`
 	Password  string `yaml:"password"`
 	Disguise  string `yaml:"disguise"`
-	FECType   string `yaml:"fec_type"`   // rs(默认) / ldpc / lt
+	FECType   string `yaml:"fec_type"`   // rs(默认) / raptorq / ldpc
 	SNI       string `yaml:"sni"`
 	Transport string `yaml:"transport"` // udp(default) / tcp / auto
 	Mode      string `yaml:"mode"`      // rule(default) / global / direct

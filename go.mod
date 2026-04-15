@@ -24,7 +24,6 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.5.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-	github.com/google/gofountain v0.0.0-20160820054803-4928733085e9 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
@@ -50,3 +49,5 @@ require (
 replace github.com/nyarime/nrtp => ../nrtp
 
 replace github.com/nyarime/nrup => ../nrup
+
+replace github.com/nyarime/gofec => /root/.openclaw/workspace/raptorq-go

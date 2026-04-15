@@ -6,6 +6,7 @@ password: "your-password"
 mode: "rule"              # rule(分流) / global(全代理) / direct(全直连)
 sni: "vpn2fa.hku.hk"
 transport: "auto"      # auto(默认) / udp / tcp
+fec_type: "rs"          # rs(默认) / raptorq / ldpc
 
 # 代理监听
 proxy:
