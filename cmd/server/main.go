@@ -21,7 +21,7 @@ func main() {
 	listen := flag.String("listen", ":443", "监听地址")
 	password := flag.String("password", "", "连接密码")
 	sni := flag.String("sni", "vpn.sjsu.edu", "QUIC 模式 SNI")
-	portal := flag.String("portal", ":8443", "AnyConnect Portal HTTPS 监听 (留空禁用)")
+	portal := flag.String("portal", ":39444", "AnyConnect Portal HTTPS 监听 (留空禁用)")
 	portalTitle := flag.String("portal-title", "Employee-SSO", "Portal 页面标题")
 	flag.Parse()
 
