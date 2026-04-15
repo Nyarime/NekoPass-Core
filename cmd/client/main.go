@@ -17,7 +17,6 @@ import (
 	"flag"
 
 	"github.com/nyarime/nrup"
-	"github.com/nyarime/nrtp"
 	"gopkg.in/yaml.v3"
 )
 
@@ -128,6 +127,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("代理监听 %s (HTTP/HTTPS/SOCKS5 自动识别)", config.Proxy.Listen)
+	go nrtpPool.Warm(3) // 预热3个连接
 
 	for {
 		conn, err := ln.Accept()
@@ -363,12 +363,7 @@ func dialNRUP() (*nrup.Conn, error) {
 }
 
 func dialTCP() (net.Conn, error) {
-	nrtpCfg := &nrtp.Config{
-		Password: config.Password,
-		Mode:     "fake-tls",
-		SNI:      config.SNI,
-	}
-	return nrtp.Dial(config.Server, nrtpCfg)
+	return nrtpPool.Get()
 }
 
 func proxyTo(target string, local net.Conn) {
