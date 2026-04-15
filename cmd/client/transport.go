@@ -124,3 +124,22 @@ func min(a, b int) int {
 	if a < b { return a }
 	return b
 }
+
+// TUI日志收集
+var tuiLogs []string
+var tuiLogsMu sync.Mutex
+
+func addTUILog(msg string) {
+	tuiLogsMu.Lock()
+	tuiLogs = append(tuiLogs, msg)
+	if len(tuiLogs) > 100 { tuiLogs = tuiLogs[len(tuiLogs)-100:] }
+	tuiLogsMu.Unlock()
+}
+
+func getTUILogs() []string {
+	tuiLogsMu.Lock()
+	defer tuiLogsMu.Unlock()
+	cp := make([]string, len(tuiLogs))
+	copy(cp, tuiLogs)
+	return cp
+}

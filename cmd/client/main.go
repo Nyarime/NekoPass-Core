@@ -197,11 +197,11 @@ func handleSOCKS5(conn net.Conn, firstByte byte) {
 
 	conn.Write([]byte{0x05, 0x00, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
 
-	mode := "PROXY"; if !shouldProxy(target) { mode = "DIRECT" }
-	log.Printf("[%s] %s", mode, target)
-	if mode == "DIRECT" {
+	if !shouldProxy(target) {
+		log.Printf("[SOCKS5] %s → DIRECT", target); addTUILog(fmt.Sprintf("[SOCKS5] %s → DIRECT", target))
 		directRelay(conn, target)
 	} else {
+		log.Printf("[SOCKS5] %s → PROXY", target); addTUILog(fmt.Sprintf("[SOCKS5] %s → PROXY", target))
 		proxyTo(target, conn)
 	}
 }
@@ -264,9 +264,8 @@ func handleHTTPConn(conn net.Conn, firstByte byte) {
 			}
 		}
 
-		mode := "PROXY"; if !shouldProxy(target) { mode = "DIRECT" }
-	log.Printf("[%s] %s", mode, target)
-	if mode == "DIRECT" {
+		if !shouldProxy(target) {
+			log.Printf("[HTTPS] %s → DIRECT", target); addTUILog(fmt.Sprintf("[HTTPS] %s → DIRECT", target))
 			conn.Write([]byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
 			directRelay(conn, target)
 		} else {
@@ -375,11 +374,12 @@ func proxyTo(target string, local net.Conn) {
 	start := time.Now()
 	remote, err := smartDialForTCP()
 	if err != nil {
-		log.Printf("[PROXY] %s → 连接失败: %v", target, err)
+		log.Printf("[PROXY] %s → 失败: %v", target, err)
 		return
 	}
 	defer remote.Close()
-	log.Printf("[PROXY] %s → 建立连接 %v", target, time.Since(start).Round(time.Millisecond))
+	log.Printf("[PROXY] %s → %v", target, time.Since(start).Round(time.Millisecond))
+	addTUILog(fmt.Sprintf("[PROXY] %s → %v", target, time.Since(start).Round(time.Millisecond)))
 
 	remote.Write([]byte(target))
 	ack := make([]byte, 1)

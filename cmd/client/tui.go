@@ -104,7 +104,11 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "left":
 			if m.tab > 0 { m.tab-- }
 		case "right":
-			if m.tab < 2 { m.tab++ }
+			if m.tab < 3 { m.tab++ }
+		case "l":
+			m.tab = 3 // Log视图
+		case "b":
+			if m.tab == 3 { m.tab = 0 } // 返回Dashboard
 		case "t":
 			m.tunOn = !m.tunOn
 			if m.tunOn {
@@ -166,7 +170,7 @@ func (m tuiModel) View() string {
 		fmt.Sprintf("NekoPass Lite  %s  → %s", tunStatus, m.server))
 
 	// Tabs
-	tabs := []string{"Dashboard", "Connections", "Config"}
+	tabs := []string{"Dashboard", "Connections", "Config", "Log"}
 	tabRow := ""
 	for i, t := range tabs {
 		if i == m.tab {
